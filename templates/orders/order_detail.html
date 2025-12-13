@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div style="border-bottom:1px solid var(--border-color); padding:16px;">
+    <div style="font-size:20px; font-weight:700;">Order Details</div>
+</div>
+
+<!-- Container -->
+<div style="padding:16px;">
+
+    <!-- User + Date -->
+    <div style="display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--border-color);">
+        <div>
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1d9bf0,#7856ff);"></div>
+        </div>
+
+        <div style="flex:1;">
+            <div style="font-weight:700; color:#e7e9ea;">
+                {{ order.user.username }}
+            </div>
+            <div style="color:#71767b; font-size:14px;">
+                {{ order.created_at|date:"F j, Y, g:i A" }}
+            </div>
+        </div>
+
+        {% if order.is_completed %}
+        <div style="
+            background:#17BF63; 
+            color:white; 
+            padding:4px 12px; 
+            border-radius:9999px;
+            font-size:13px;
+            font-weight:700;">
+            Completed
+        </div>
+
+        {% elif order.is_canceled %}
+        <div style="
+            background:#F4212E; 
+            color:white; 
+            padding:4px 12px; 
+            border-radius:9999px;
+            font-size:13px;
+            font-weight:700;">
+            Canceled
+        </div>
+
+        {% else %}
+        <div style="
+            background:#FFAD1F; 
+            color:black; 
+            padding:4px 12px; 
+            border-radius:9999px;
+            font-size:13px;
+            font-weight:700;">
+            Pending
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Items -->
+    <div style="margin-top:16px; border-bottom:1px solid var(--border-color);">
+
+        {% for item in order.items.all %}
+        <div style="
+            display:flex; 
+            justify-content:space-between; 
+            padding:14px 0;
+            border-bottom:1px solid var(--border-color);">
+
+            <div style="font-weight:700; color:#e7e9ea;">
+                {{ item.product.name }}
+            </div>
+
+            <div style="color:#71767b;">x{{ item.quantity }}</div>
+
+            <div style="font-weight:700; color:#e7e9ea;">
+                ${{ item.price }}
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Summary -->
+    <div style="padding:16px 0; margin-top:4px; border-bottom:1px solid var(--border-color);">
+
+        <div style="display:flex; justify-content:space-between; padding:6px 0;">
+            <div style="color:#71767b;">Total Items</div>
+            <div style="font-weight:700; color:#e7e9ea;">{{ order.items.count }}</div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; padding:6px 0;">
+            <div style="color:#71767b;">Total Price</div>
+            <div style="font-weight:700; color:#e7e9ea;">${{ order.total_price }}</div>
+        </div>
+
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex; gap:12px; margin-top:20px;">
+
+        <a href="{% url 'order_list' %}"
+           style="
+           background:#1d9bf0; 
+           color:white; 
+           padding:10px 18px;
+           border-radius:9999px;
+           font-weight:700;
+           text-decoration:none;
+           font-size:15px;">
+            Back
+        </a>
+
+        {% if not order.is_canceled and not order.is_completed %}
+        <a href="{% url 'order_cancel' order.id %}"
+           style="
+           background:#F4212E; 
+           color:white; 
+           padding:10px 18px;
+           border-radius:9999px;
+           font-weight:700;
+           text-decoration:none;
+           font-size:15px;">
+            Cancel Order
+        </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Create Post</h2>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <label>Content: <textarea name="content"></textarea></label><br>
+  <label>Image: <input type="file" name="image"></label><br>
+  <label>Video: <input type="file" name="video"></label><br>
+  <button type="submit">Post</button>
+</form>
+{% endblock %}

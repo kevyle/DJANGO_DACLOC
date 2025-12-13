@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding: 16px; max-width: 600px; margin: auto;">
+
+  <div style="
+    background-color: #14171a;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #2f3336;
+    transition: all 0.2s;
+  ">
+
+    {% if item.image %}
+    <div style="width: 100%; height: 350px; overflow: hidden; border-radius: 16px; margin-bottom: 16px;">
+      <img src="{{ item.image.url }}" alt="{{ item.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+    {% endif %}
+
+    <h2 style="color: white; font-weight: 700; font-size: 24px; margin-bottom: 8px;">{{ item.name }}</h2>
+    <p style="color: #e1e8ed; font-size: 16px; margin-bottom: 12px;">{{ item.description }}</p>
+
+    <span style="
+      font-weight: 700; 
+      color: var(--primary-color);
+      font-size: 18px;
+      background-color: #15202b;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      display: inline-block;
+      margin-bottom: 16px;
+    ">
+      ${{ item.price }}
+    </span>
+
+    <div style="display: flex; gap: 12px;">
+
+      <!-- Buy Now Form -->
+      <form method="post" action="{% url 'order_create' item.id %}">
+        {% csrf_token %}
+        <button type="submit" style="
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          border-radius: 9999px;
+          padding: 8px 16px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: background 0.2s;
+        " onmouseover="this.style.backgroundColor='#1a8cd8'" 
+           onmouseout="this.style.backgroundColor=var('--primary-color')">
+          <i class='bx bx-cart'></i> Buy Now
+        </button>
+      </form>
+
+      <!-- Back Button -->
+      <a href="{% url 'item_list' %}" style="
+        background: transparent;
+        border: 1px solid #1d9bf0;
+        color: #1d9bf0;
+        border-radius: 9999px;
+        padding: 8px 16px;
+        font-weight: 700;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      " onmouseover="this.style.backgroundColor='#1d9bf0'; this.style.color='white';"
+         onmouseout="this.style.backgroundColor='transparent'; this.style.color='#1d9bf0';">
+        <i class='bx bx-arrow-back'></i> Back
+      </a>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

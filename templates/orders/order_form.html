@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="header">
+    Create Order
+</div>
+
+<div class="timeline-post">
+    <div class="avatar"></div>
+
+    <div class="post-content">
+
+        <div class="post-header">
+            <span class="username">Order Information</span>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="post-text">
+                {{ form.non_field_errors }}
+            </div>
+
+            <div class="post-text" style="margin-bottom: 15px;">
+                {{ form.as_p }}
+            </div>
+
+            <button type="submit" class="stat-btn" style="width: 100%; margin-top: 10px;">
+                <i class='bx bx-check'></i> Submit Order
+            </button>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

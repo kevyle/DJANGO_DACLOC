@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<h2>{% if action == 'create' %}Create Item{% else %}Edit Item{% endif %}</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label for="name">Name:</label><br>
+    <input type="text" name="name" id="name" value="{{ item.name|default:'' }}"><br><br>
+
+    <label for="description">Description:</label><br>
+    <textarea name="description" id="description">{{ item.description|default:'' }}</textarea><br><br>
+
+    <label for="price">Price:</label><br>
+    <input type="number" name="price" id="price" value="{{ item.price|default:'' }}"><br><br>
+
+    <label for="image">Image:</label><br>
+    <input type="file" name="image" id="image"><br><br>
+
+    <button type="submit">{% if action == 'create' %}Create{% else %}Save{% endif %}</button>
+</form>
+{% endblock %}

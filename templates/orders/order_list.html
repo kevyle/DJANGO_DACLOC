@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="color:#e7e9ea;">
+
+    <div style="
+        font-size:20px;
+        font-weight:700;
+        padding:16px;
+        border-bottom:1px solid #2f3336;
+        position:sticky;
+        top:0;
+        background:rgba(0,0,0,0.65);
+        backdrop-filter:blur(12px);
+        z-index:10;">
+        My Orders
+    </div>
+
+    {% if orders %}
+        {% for order in orders %}
+        <a href="{% url 'order_detail' order.id %}" 
+           style="display:block;text-decoration:none;color:inherit;">
+        <div style="
+            padding:16px;
+            border-bottom:1px solid #2f3336;
+            cursor:pointer;
+            transition:background 0.2s;">
+            
+            <div style="font-size:15px; color:#71767b;">
+                Order #{{ order.id }}
+            </div>
+
+            <div style="margin-top:6px; font-size:18px; font-weight:600; color:#e7e9ea;">
+                ${{ order.total }}
+            </div>
+
+            <div style="margin-top:6px; font-size:14px; color:#71767b;">
+                {{ order.created_at|date:"M d, Y" }}
+            </div>
+
+            <div style="margin-top:10px;">
+                {% if order.status == "Completed" %}
+                    <span style="
+                        background:#17bf63;
+                        padding:3px 12px;
+                        border-radius:9999px;
+                        font-size:13px;
+                        font-weight:700;
+                        color:white;">
+                        Completed
+                    </span>
+                {% elif order.status == "Canceled" %}
+                    <span style="
+                        background:#f4212e;
+                        padding:3px 12px;
+                        border-radius:9999px;
+                        font-size:13px;
+                        font-weight:700;
+                        color:white;">
+                        Canceled
+                    </span>
+                {% else %}
+                    <span style="
+                        background:#ffad1f;
+                        padding:3px 12px;
+                        border-radius:9999px;
+                        font-size:13px;
+                        font-weight:700;
+                        color:black;">
+                        Pending
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        </a>
+        {% endfor %}
+
+    {% else %}
+        <div style="padding:20px; text-align:center; color:#71767b;">
+            You have no orders yet.
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

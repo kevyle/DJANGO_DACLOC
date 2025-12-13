@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="main">
+  <!-- Header -->
+  <div class="header" style="display: flex; align-items: center; gap: 10px;">
+    <a href="{% url 'post_list' %}" style="color: white; text-decoration: none;">
+      <i class='bx bx-arrow-back' style="font-size: 24px;"></i>
+    </a>
+    <span>Post</span>
+  </div>
+
+  <!-- Post Container -->
+  <div class="timeline-post" style="cursor: default;">
+    <div class="avatar"></div>
+    <div class="post-content">
+      <div class="post-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <span class="username">{{ post.author.display_name }}</span>
+          <span class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
+        </div>
+
+        <!-- Follow + Menu -->
+        <div style="display: flex; align-items: center; gap: 8px; position: relative;">
+          {% if user != post.author %}
+          <button class="follow-btn">Follow</button>
+          {% endif %}
+
+          <button class="stat-btn menu-btn" onclick="toggleMenu()">⋯</button>
+
+          <!-- Dropdown Menu -->
+          <div id="postMenu" class="post-menu">
+            <button class="menu-item">Report</button>
+            {% if user == post.author %}
+            <button class="menu-item" onclick="openEditModal()">Edit</button>
+            <form method="post" action="{% url 'post_delete' post.id %}">
+              {% csrf_token %}
+              <button type="submit" class="menu-item delete-btn">Delete</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Post Text -->
+      <div class="post-text">{{ post.content }}</div>
+
+      {% if post.image %}
+      <div class="post-media">
+        <img src="{{ post.image.url }}" alt="Post image">
+      </div>
+      {% endif %}
+
+      {% if post.video %}
+      <div class="post-media">
+        <video controls>
+          <source src="{{ post.video.url }}" type="video/mp4">
+        </video>
+      </div>
+      {% endif %}
+
+      <!-- Stats -->
+      <div class="post-stats">
+        <button class="stat-btn"><i class='bx bx-comment'></i> {{ post.comment_count|default:0 }}</button>
+        <button class="stat-btn"><i class='bx bx-repost'></i> {{ post.repost_count|default:0 }}</button>
+        <button class="stat-btn"><i class='bx bx-heart'></i> {{ post.like_count|default:0 }}</button>
+        <button class="stat-btn"><i class='bx bx-bar-chart-alt'></i> {{ post.view_count|default:0 }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-5">
+  <h4 class="border-bottom pb-2">
+    Bình luận ({{ comments.count }})
+  </h4>
+
+  <!-- Hiển thị thông báo -->
+  {% if messages %}
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Danh sách bình luận -->
+  <div class="mt-4">
+    {% for comment in comments %}
+    <div class="d-flex mb-4 pb-3 border-bottom">
+      <div class="flex-shrink-0">
+        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
+          style="width: 45px; height: 45px;">
+          {{ comment.author.username|first|upper }}
+        </div>
+      </div>
+      <div class="flex-grow-1 ms-3">
+        <div class="d-flex justify-content-between">
+          <h6 class="mb-0 fw-bold">{{ comment.author.username }}</h6>
+          <small class="text-muted">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
+        </div>
+        <p class="mt-2 mb-0 text-dark">{{ comment.content|linebreaks }}</p>
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-muted fst-italic">Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+    {% endfor %}
+  </div>
+
+  <!-- Form viết bình luận -->
+  <div class="mt-5 p-4 bg-light rounded">
+    <h5 class="mb-3">Viết bình luận của bạn</h5>
+    <form method="post" action="{% url 'comment_create' post.id %}">
+      {% csrf_token %}
+      <textarea name="content" class="form-control" rows="4" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này..."
+        required></textarea>
+      <div class="mt-3 text-end">
+        <button type="submit" class="btn btn-success px-4">
+          Gửi bình luận
+        </button>
+      </div>
+    </form>
+  </div>
+  {% comment %} <div class="alert alert-info mt-4 text-center">
+    <a href="{% url 'user_login' %}?next={{ request.path }}" class="text-decoration-none">
+      Đăng nhập để viết bình luận
+    </a>
+  </div> {% endcomment %}
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditModal()">&times;</span>
+    <form method="post" action="{% url 'post_edit' post.id %}" enctype="multipart/form-data" id="editForm">
+      {% csrf_token %}
+      <textarea name="content" id="editContent" required></textarea>
+
+      <div class="media-preview" id="editImagePreview">
+        <img id="editPreviewImg" alt="Preview">
+        <button type="button" class="remove-media" onclick="removeEditImage()">✕</button>
+      </div>
+
+      <div class="media-preview" id="editVideoPreview">
+        <video id="editPreviewVideo" controls></video>
+        <button type="button" class="remove-media" onclick="removeEditVideo()">✕</button>
+      </div>
+
+      <div class="post-actions">
+        <label class="media-btn" title="Add Image">
+          <i class='bx bx-image'></i>
+          <input type="file" name="image" accept="image/*" id="editImageInput" onchange="previewEditImage(event)">
+        </label>
+        <label class="media-btn" title="Add Video">
+          <i class='bx bx-video'></i>
+          <input type="file" name="video" accept="video/*" id="editVideoInput" onchange="previewEditVideo(event)">
+        </label>
+        <button type="button" class="media-btn" title="Emoji/GIF"><i class='bx bx-face'></i></button>
+        <button type="button" class="media-btn" title="Poll"><i class='bx bx-poll'></i></button>
+        <button type="submit" class="submit-btn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  /* Menu */
+  .post-menu {
+    position: absolute;
+    right: 0;
+    top: 28px;
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    min-width: 160px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(-20px);
+    pointer-events: none;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+
+  .post-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .post-menu .menu-item {
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    color: #e7e9ea;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .post-menu .menu-item:hover {
+    background: rgba(29, 155, 240, 0.1);
+  }
+
+  .post-menu .delete-btn {
+    color: #ff4d4f;
+  }
+
+  .post-menu .disabled {
+    color: #71767b;
+    cursor: not-allowed;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 500;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-content {
+    background: #000;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 16px;
+    width: 500px;
+    max-width: 90%;
+    color: #fff;
+    position: relative;
+  }
+
+  .modal-content .close {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-size: 28px;
+    cursor: pointer;
+  }
+
+  .post-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .media-btn {
+    background: transparent;
+    border: none;
+    color: #1da1f2;
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  .submit-btn {
+    background: #1da1f2;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 9999px;
+    cursor: pointer;
+  }
+
+  .media-preview {
+    display: none;
+    position: relative;
+    margin-top: 10px;
+  }
+
+  .media-preview.active {
+    display: block;
+  }
+
+  .remove-media {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    background: #111;
+    color: #fff;
+    border: none;
+    resize: none;
+  }
+</style>
+
+<script>
+  // Dropdown Menu
+  const menu = document.getElementById('postMenu');
+  const button = document.querySelector('.menu-btn');
+  function toggleMenu() { menu.classList.toggle('show'); }
+  document.addEventListener('click', function (e) {
+    if (!menu.contains(e.target) && !button.contains(e.target)) menu.classList.remove('show');
+  });
+
+  // Edit Modal
+  const editModal = document.getElementById('editModal');
+  function openEditModal() {
+    editModal.style.display = 'block';
+    document.getElementById('editContent').value = "{{ post.content|escapejs }}";
+
+    {% if post.image %}
+    document.getElementById('editPreviewImg').src = "{{ post.image.url }}";
+    document.getElementById('editImagePreview').classList.add('active');
+    {% endif %}
+    {% if post.video %}
+    document.getElementById('editPreviewVideo').src = "{{ post.video.url }}";
+    document.getElementById('editVideoPreview').classList.add('active');
+    {% endif %}
+  }
+  function closeEditModal() { editModal.style.display = 'none'; }
+
+  // Media Preview Functions
+  function previewEditImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('editPreviewImg').src = e.target.result;
+        document.getElementById('editImagePreview').classList.add('active');
+        removeEditVideo();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  function previewEditVideo(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('editPreviewVideo').src = e.target.result;
+        document.getElementById('editVideoPreview').classList.add('active');
+        removeEditImage();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  function removeEditImage() {
+    document.getElementById('editPreviewImg').src = '';
+    document.getElementById('editImageInput').value = '';
+    document.getElementById('editImagePreview').classList.remove('active');
+  }
+  function removeEditVideo() {
+    document.getElementById('editPreviewVideo').src = '';
+    document.getElementById('editVideoInput').value = '';
+    document.getElementById('editVideoPreview').classList.remove('active');
+  }
+
+  // Close modal on click outside
+  window.onclick = function (e) {
+    if (e.target == editModal) closeEditModal();
+  }
+</script>
+
+{% endblock %}
