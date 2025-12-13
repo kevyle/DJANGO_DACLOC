@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="main">
+
   <!-- Header -->
   <div class="header" style="display: flex; align-items: center; gap: 10px;">
     <a href="{% url 'post_list' %}" style="color: white; text-decoration: none;">
@@ -11,25 +12,20 @@
     <span>Post</span>
   </div>
 
-  <!-- Post Container -->
-  <div class="timeline-post" style="cursor: default;">
+  <!-- Post -->
+    <div class="timeline-post">
     <div class="avatar"></div>
+
     <div class="post-content">
-      <div class="post-header" style="display: flex; align-items: center; justify-content: space-between;">
+      <div class="post-header">
         <div>
           <span class="username">{{ post.author.display_name }}</span>
           <span class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
         </div>
 
-        <!-- Follow + Menu -->
-        <div style="display: flex; align-items: center; gap: 8px; position: relative;">
-          {% if user != post.author %}
-          <button class="follow-btn">Follow</button>
-          {% endif %}
-
+        <div class="post-actions">
           <button class="stat-btn menu-btn" onclick="toggleMenu()">⋯</button>
 
-          <!-- Dropdown Menu -->
           <div id="postMenu" class="post-menu">
             <button class="menu-item">Report</button>
             {% if user == post.author %}
@@ -43,7 +39,6 @@
         </div>
       </div>
 
-      <!-- Post Text -->
       <div class="post-text">{{ post.content }}</div>
 
       {% if post.image %}
@@ -60,105 +55,103 @@
       </div>
       {% endif %}
 
-      <!-- Stats -->
       <div class="post-stats">
-        <button class="stat-btn"><i class='bx bx-comment'></i> {{ post.comment_count|default:0 }}</button>
-        <button class="stat-btn"><i class='bx bx-repost'></i> {{ post.repost_count|default:0 }}</button>
+        <button class="stat-btn"><i class='bx bx-comment'></i> {{ comments.count }}</button>
         <button class="stat-btn"><i class='bx bx-heart'></i> {{ post.like_count|default:0 }}</button>
-        <button class="stat-btn"><i class='bx bx-bar-chart-alt'></i> {{ post.view_count|default:0 }}</button>
       </div>
     </div>
   </div>
-</div>
 
-<div class="mt-5">
-  <h4 class="border-bottom pb-2">
-    Bình luận ({{ comments.count }})
-  </h4>
+  <!-- Comments -->
+  <div class="comments-section">
+    <h3 class="comments-title">Replies</h3>
 
-  <!-- Hiển thị thông báo -->
-  {% if messages %}
-  {% for message in messages %}
-  <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-  {% endif %}
-
-  <!-- Danh sách bình luận -->
-  <div class="mt-4">
     {% for comment in comments %}
-    <div class="d-flex mb-4 pb-3 border-bottom">
-      <div class="flex-shrink-0">
-        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
-          style="width: 45px; height: 45px;">
-          {{ comment.author.username|first|upper }}
-        </div>
+    <div class="comment">
+      <div class="comment-avatar">
+        {{ comment.author.username|first|upper }}
       </div>
-      <div class="flex-grow-1 ms-3">
-        <div class="d-flex justify-content-between">
-          <h6 class="mb-0 fw-bold">{{ comment.author.username }}</h6>
-          <small class="text-muted">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
+
+      <div class="comment-body">
+        <div class="comment-header">
+          <span class="comment-name">{{ comment.author.display_name }}</span>
+          <span class="comment-handle">@{{ comment.author.username }}</span>
+          <span class="comment-time">· {{ comment.created_at|timesince }} ago</span>
         </div>
-        <p class="mt-2 mb-0 text-dark">{{ comment.content|linebreaks }}</p>
+
+        <div class="comment-text">
+          {{ comment.content|linebreaks }}
+
+          {% if comment.image %}
+          <div class="comment-media">
+            <img src="{{ comment.image.url }}" alt="Comment image">
+          </div>
+          {% endif %}
+
+          {% if comment.video %}
+          <div class="comment-media">
+            <video controls>
+              <source src="{{ comment.video.url }}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          {% endif %}
+        </div>
       </div>
     </div>
     {% empty %}
-    <p class="text-muted fst-italic">Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+    <p class="no-comments">No replies yet. Be the first to reply.</p>
     {% endfor %}
-  </div>
 
-  <!-- Form viết bình luận -->
-  <div class="mt-5 p-4 bg-light rounded">
-    <h5 class="mb-3">Viết bình luận của bạn</h5>
-    <form method="post" action="{% url 'comment_create' post.id %}">
-      {% csrf_token %}
-      <textarea name="content" class="form-control" rows="4" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này..."
-        required></textarea>
-      <div class="mt-3 text-end">
-        <button type="submit" class="btn btn-success px-4">
-          Gửi bình luận
-        </button>
-      </div>
-    </form>
+    <!-- Reply box -->
+    <div class="comment-box">
+      <form method="post" action="{% url 'comment_create' post.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="comment-input-wrapper">
+          <div id="commentPreview" class="comment-preview" aria-live="polite"></div>
+          <textarea class="comment-input" name="content" placeholder="Post your reply"></textarea>
+        </div>
+
+        <div class="comment-controls">
+          <div class="media-controls">
+            <label class="media-btn" title="Add image">
+              <i class='bx bx-image'></i>
+              <input class="media-input" type="file" name="image" accept="image/*" hidden>
+              <span class="media-thumb" aria-hidden="true"></span>
+            </label>
+
+            <label class="media-btn" title="Add video">
+              <i class='bx bx-video'></i>
+              <input class="media-input" type="file" name="video" accept="video/*" hidden>
+            </label>
+          </div>
+          <div class="comment-actions">
+            <button type="submit">Reply</button>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
-  {% comment %} <div class="alert alert-info mt-4 text-center">
-    <a href="{% url 'user_login' %}?next={{ request.path }}" class="text-decoration-none">
-      Đăng nhập để viết bình luận
-    </a>
-  </div> {% endcomment %}
 </div>
 
 <!-- Edit Modal -->
 <div id="editModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="closeEditModal()">&times;</span>
-    <form method="post" action="{% url 'post_edit' post.id %}" enctype="multipart/form-data" id="editForm">
+    <form method="post" action="{% url 'post_edit' post.id %}" enctype="multipart/form-data">
       {% csrf_token %}
       <textarea name="content" id="editContent" required></textarea>
 
-      <div class="media-preview" id="editImagePreview">
-        <img id="editPreviewImg" alt="Preview">
-        <button type="button" class="remove-media" onclick="removeEditImage()">✕</button>
-      </div>
-
-      <div class="media-preview" id="editVideoPreview">
-        <video id="editPreviewVideo" controls></video>
-        <button type="button" class="remove-media" onclick="removeEditVideo()">✕</button>
-      </div>
-
       <div class="post-actions">
-        <label class="media-btn" title="Add Image">
+        <label class="media-btn">
           <i class='bx bx-image'></i>
-          <input type="file" name="image" accept="image/*" id="editImageInput" onchange="previewEditImage(event)">
+          <input type="file" name="image" hidden>
         </label>
-        <label class="media-btn" title="Add Video">
+        <label class="media-btn">
           <i class='bx bx-video'></i>
-          <input type="file" name="video" accept="video/*" id="editVideoInput" onchange="previewEditVideo(event)">
+          <input type="file" name="video" hidden>
         </label>
-        <button type="button" class="media-btn" title="Emoji/GIF"><i class='bx bx-face'></i></button>
-        <button type="button" class="media-btn" title="Poll"><i class='bx bx-poll'></i></button>
         <button type="submit" class="submit-btn">Save</button>
       </div>
     </form>
@@ -166,206 +159,395 @@
 </div>
 
 <style>
-  /* Menu */
-  .post-menu {
-    position: absolute;
-    right: 0;
-    top: 28px;
-    background: #000;
+  .timeline-post {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid #2f3336;
+  }
+
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .username {
+    font-weight: 700;
+  }
+
+  .handle {
+    color: #71767b;
+  }
+
+  .post-text {
+    margin: 10px 0;
+  }
+
+  .post-media img,
+  .post-media video {
+    max-width: 100%;
     border-radius: 16px;
-    overflow: hidden;
-    min-width: 160px;
-    z-index: 100;
-    opacity: 0;
-    transform: translateY(-20px);
-    pointer-events: none;
-    transition: transform 0.25s ease, opacity 0.25s ease;
   }
 
-  .post-menu.show {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
+  .comments-section {
+    padding: 16px;
   }
 
-  .post-menu .menu-item {
+  .comment {
+    display: flex;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid #2f3336;
+  }
+
+  .comment-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #1d9bf0;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  
+
+  .comment-header {
+    font-size: 14px;
+  }
+
+  .comment-handle,
+  .comment-time {
+    color: #71767b;
+  }
+
+  .comment-text {
+    margin-top: 6px;
+  }
+
+  .comment-input-wrapper textarea {
     width: 100%;
-    text-align: left;
-    padding: 12px 16px;
-    color: #e7e9ea;
     background: transparent;
     border: none;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
+    color: #e7e9ea;
+    resize: none;
+    min-height: 80px;
   }
 
-  .post-menu .menu-item:hover {
-    background: rgba(29, 155, 240, 0.1);
+  .comment-actions {
+    text-align: right;
   }
 
-  .post-menu .delete-btn {
-    color: #ff4d4f;
+  .comment-actions button {
+    background: #1d9bf0;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 9999px;
+    font-weight: 700;
+    margin-top: 8px;
   }
 
-  .post-menu .disabled {
-    color: #71767b;
-    cursor: not-allowed;
-  }
-
-  /* Modal */
   .modal {
     display: none;
     position: fixed;
-    z-index: 500;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
+    inset: 0;
     background: rgba(0, 0, 0, 0.6);
   }
 
   .modal-content {
     background: #000;
+    width: 500px;
     margin: 10% auto;
     padding: 20px;
     border-radius: 16px;
-    width: 500px;
-    max-width: 90%;
-    color: #fff;
-    position: relative;
   }
 
-  .modal-content .close {
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    font-size: 28px;
-    cursor: pointer;
-  }
-
-  .post-actions {
+  .comment-input-wrapper {
+    width: 100%;
+    background: transparent;
+    border: #71767b 1px solid;
+    border-radius: 8px;
+    color: #e7e9ea;
+    padding: 8px;
     display: flex;
     gap: 8px;
-    margin-top: 10px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .comment-input {
+    text-decoration: none;
+    font-size: 16px;
+    margin-left: 0;
+    margin-top: 0;
+  }
+
+  .comment-input:focus {
+    outline: none;
+  }
+
+  /* Media controls (Twitter-style) */
+  .comment-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .media-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
 
   .media-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     background: transparent;
-    border: none;
-    color: #1da1f2;
-    font-size: 20px;
+    border: 1px solid transparent;
+    color: #1d9bf0;
     cursor: pointer;
+    transition: background .12s ease, transform .08s ease;
   }
 
-  .submit-btn {
-    background: #1da1f2;
-    color: white;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 9999px;
-    cursor: pointer;
+  .media-btn:hover {
+    background: rgba(29,155,240,0.12);
+    transform: translateY(-1px);
   }
 
-  .media-preview {
+  .comment-preview {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    max-width: 320px;
+  }
+
+  /* Thumbnail inside the media button */
+  .media-thumb {
     display: none;
-    position: relative;
-    margin-top: 10px;
+    position: absolute;
+    inset: 4px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center center;
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    pointer-events: none;
   }
 
-  .media-preview.active {
+  .media-btn { position: relative; }
+
+  .media-btn .bx { font-size: 18px; }
+
+  .preview-item {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f1112;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .preview-item img,
+  .preview-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .comment-media img,
+  .comment-media video {
+    max-width: 100%;
+    border-radius: 12px;
+    margin-top: 8px;
     display: block;
   }
 
-  .remove-media {
+  .remove-preview {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    background: rgba(0, 0, 0, 0.5);
-    border: none;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.6);
     color: #fff;
+    border: none;
     border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-  }
-
-  textarea {
-    width: 100%;
-    padding: 10px;
-    border-radius: 12px;
-    background: #111;
-    color: #fff;
-    border: none;
-    resize: none;
   }
 </style>
 
 <script>
-  // Dropdown Menu
   const menu = document.getElementById('postMenu');
-  const button = document.querySelector('.menu-btn');
-  function toggleMenu() { menu.classList.toggle('show'); }
-  document.addEventListener('click', function (e) {
-    if (!menu.contains(e.target) && !button.contains(e.target)) menu.classList.remove('show');
-  });
 
-  // Edit Modal
-  const editModal = document.getElementById('editModal');
+  function toggleMenu() {
+    menu.classList.toggle('show');
+  }
+
   function openEditModal() {
-    editModal.style.display = 'block';
+    document.getElementById('editModal').style.display = 'block';
     document.getElementById('editContent').value = "{{ post.content|escapejs }}";
-
-    {% if post.image %}
-    document.getElementById('editPreviewImg').src = "{{ post.image.url }}";
-    document.getElementById('editImagePreview').classList.add('active');
-    {% endif %}
-    {% if post.video %}
-    document.getElementById('editPreviewVideo').src = "{{ post.video.url }}";
-    document.getElementById('editVideoPreview').classList.add('active');
-    {% endif %}
-  }
-  function closeEditModal() { editModal.style.display = 'none'; }
-
-  // Media Preview Functions
-  function previewEditImage(event) {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        document.getElementById('editPreviewImg').src = e.target.result;
-        document.getElementById('editImagePreview').classList.add('active');
-        removeEditVideo();
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-  function previewEditVideo(event) {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        document.getElementById('editPreviewVideo').src = e.target.result;
-        document.getElementById('editVideoPreview').classList.add('active');
-        removeEditImage();
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-  function removeEditImage() {
-    document.getElementById('editPreviewImg').src = '';
-    document.getElementById('editImageInput').value = '';
-    document.getElementById('editImagePreview').classList.remove('active');
-  }
-  function removeEditVideo() {
-    document.getElementById('editPreviewVideo').src = '';
-    document.getElementById('editVideoInput').value = '';
-    document.getElementById('editVideoPreview').classList.remove('active');
   }
 
-  // Close modal on click outside
+  function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+  }
+
   window.onclick = function (e) {
-    if (e.target == editModal) closeEditModal();
+    if (e.target.id === 'editModal') closeEditModal();
   }
+
+  // Comment media preview handlers
+  (function () {
+    const previewContainer = document.getElementById('commentPreview');
+    const mediaInputs = document.querySelectorAll('.media-input');
+    const selected = { image: null, video: null };
+
+    function clearPreview(type) {
+      if (!previewContainer) return;
+      const item = previewContainer.querySelector('[data-type="' + type + '"]');
+      if (item) {
+        const el = item.querySelector('img,video');
+        if (el && el.src) URL.revokeObjectURL(el.src);
+        item.remove();
+      }
+      selected[type] = null;
+      // Also clear the actual input value
+      const inp = document.querySelector('.media-input[name="' + type + '"]');
+      if (inp) inp.value = '';
+      // also clear the thumbnail inside the image button if present
+      if (type === 'image') {
+        const imgInput = document.querySelector('.media-input[name="image"]');
+        if (imgInput) {
+          const label = imgInput.closest('label.media-btn');
+          if (label) {
+            const thumb = label.querySelector('.media-thumb');
+            if (thumb) {
+              if (thumb.dataset.objectUrl) URL.revokeObjectURL(thumb.dataset.objectUrl);
+              thumb.style.backgroundImage = '';
+              thumb.style.display = 'none';
+              delete thumb.dataset.objectUrl;
+            }
+            const icon = label.querySelector('i');
+            if (icon) icon.style.opacity = '';
+          }
+        }
+      }
+    }
+
+    function renderPreview(file, type) {
+      if (!previewContainer) return;
+      clearPreview(type);
+
+      const url = URL.createObjectURL(file);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-item';
+      wrapper.setAttribute('data-type', type);
+
+      if (type === 'image') {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = file.name;
+        wrapper.appendChild(img);
+      } else if (type === 'video') {
+        const vid = document.createElement('video');
+        vid.src = url;
+        vid.controls = false;
+        wrapper.appendChild(vid);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'remove-preview';
+      removeBtn.innerText = '×';
+      removeBtn.title = 'Remove';
+      removeBtn.addEventListener('click', () => clearPreview(type));
+      wrapper.appendChild(removeBtn);
+
+      previewContainer.appendChild(wrapper);
+      selected[type] = { file, url };
+    }
+
+    mediaInputs.forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        // determine type from input name
+        const type = inp.name; // 'image' or 'video'
+        // basic validation: limit size to 20MB for videos, 5MB for images (optional)
+        const maxSize = type === 'video' ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+          alert('File is too large. Choose a smaller file.');
+          inp.value = '';
+          return;
+        }
+        renderPreview(file, type);
+
+        // If this is the image input, also show a tiny thumbnail inside the button
+        try {
+          const label = inp.closest('label.media-btn');
+          if (type === 'image' && label) {
+            const url = URL.createObjectURL(file);
+            let thumb = label.querySelector('.media-thumb');
+            if (!thumb) {
+              thumb = document.createElement('span');
+              thumb.className = 'media-thumb';
+              label.appendChild(thumb);
+            }
+            thumb.style.backgroundImage = `url(${url})`;
+            thumb.style.display = 'block';
+            // hide icon when thumbnail visible
+            const icon = label.querySelector('i');
+            if (icon) icon.style.opacity = '0';
+            // store the object URL so we can revoke later when clearing
+            thumb.dataset.objectUrl = url;
+
+            // Also render a small inline preview inside the input wrapper (so the image appears "in the input box")
+            const previewContainer = document.getElementById('commentPreview');
+            if (previewContainer) {
+              // remove any existing inline image preview
+              const existing = previewContainer.querySelector('[data-type="image-inline"]');
+              if (existing) {
+                const img = existing.querySelector('img');
+                if (img && img.src) URL.revokeObjectURL(img.src);
+                existing.remove();
+              }
+              const wrapper = document.createElement('div');
+              wrapper.className = 'preview-item';
+              wrapper.setAttribute('data-type', 'image-inline');
+              const img = document.createElement('img');
+              img.src = url;
+              img.alt = file.name;
+              wrapper.appendChild(img);
+              const removeBtn = document.createElement('button');
+              removeBtn.type = 'button';
+              removeBtn.className = 'remove-preview';
+              removeBtn.innerText = '×';
+              removeBtn.title = 'Remove';
+              removeBtn.addEventListener('click', () => clearPreview('image'));
+              wrapper.appendChild(removeBtn);
+              previewContainer.appendChild(wrapper);
+            }
+          }
+        } catch (err) {
+          console.warn('Could not set button thumbnail', err);
+        }
+      });
+    });
+  })();
 </script>
 
 {% endblock %}
