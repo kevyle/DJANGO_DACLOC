@@ -63,3 +63,23 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'Comment by {self.author.username} on Post {self.post.id}' or "No Content"
+    
+class Reaction(models.Model):
+    REACTION_CHOICES = [
+        ('like', 'Like'),
+        ('love', 'Love'),
+        ('haha', 'Haha'),
+        ('wow', 'Wow'),
+        ('sad', 'Sad'),
+        ('angry', 'Angry'),
+    ]
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='reactions')
+    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('post', 'user')
+
+    def __str__(self):
+        return f'{self.reaction_type} by {self.user.username} on Post {self.post.id}'
