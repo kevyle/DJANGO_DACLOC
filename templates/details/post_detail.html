@@ -13,21 +13,31 @@
   </div>
 
   <!-- Post -->
-    <div class="timeline-post">
-    <div class="avatar"></div>
+  <!-- Post top: banner + author -->
+  <div class="post-top">
+    <div class="post-banner"></div>
+    <div class="post-author">
+      <div class="avatar-large">{{ post.author.username|first|upper }}</div>
+      <div class="author-meta">
+        <div class="display-name">{{ post.author.display_name|default:post.author.username|capfirst }}</div>
+        <div class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</div>
+      </div>
+    </div>
+  </div>
 
+  <div class="timeline-post card">
     <div class="post-content">
       <div class="post-header">
-        <div>
-          <span class="username">{{ post.author.display_name }}</span>
+        <div class="post-title">
+          <span class="username">{{ post.author.display_name|default:post.author.username|capfirst }}</span>
           <span class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
         </div>
 
         <div class="post-actions">
-          <button class="stat-btn menu-btn" onclick="toggleMenu()">⋯</button>
+          <button class="stat-btn menu-btn" onclick="toggleMenu()"><i class="bx bx-dots-horizontal-rounded" aria-hidden="true"></i></button>
 
           <div id="postMenu" class="post-menu">
-            <button class="menu-item">Report</button>
+            <button class="menu-item report-btn" onclick="openReportModal()">Report</button>
             {% if user == post.author %}
             <button class="menu-item" onclick="openEditModal()">Edit</button>
             <form method="post" action="{% url 'post_delete' post.id %}">
@@ -56,8 +66,9 @@
       {% endif %}
 
       <div class="post-stats">
-        <button class="stat-btn"><i class='bx bx-comment'></i> {{ comments.count }}</button>
-        <button class="stat-btn"><i class='bx bx-heart'></i> {{ post.like_count|default:0 }}</button>
+        <button class="stat-btn comment-btn"><i class='bx bx-comment'></i> <span class="stat-count">{{ comments.count }}</span></button>
+        <button class="stat-btn like-btn" data-liked="false"><i class='bx bx-heart'></i> <span class="stat-count">{{ post.like_count|default:0 }}</span></button>
+        <button class="stat-btn"><i class='bx bx-share'></i></button>
       </div>
     </div>
   </div>
@@ -68,19 +79,16 @@
 
     {% for comment in comments %}
     <div class="comment">
-      <div class="comment-avatar">
-        {{ comment.author.username|first|upper }}
-      </div>
-
-      <div class="comment-body">
-        <div class="comment-header">
+      <div class="comment-left"><div class="comment-avatar">{{ comment.author.username|first|upper }}</div></div>
+      <div class="comment-right">
+        <div class="comment-meta">
           <span class="comment-name">{{ comment.author.display_name }}</span>
           <span class="comment-handle">@{{ comment.author.username }}</span>
           <span class="comment-time">· {{ comment.created_at|timesince }} ago</span>
         </div>
 
-        <div class="comment-text">
-          {{ comment.content|linebreaks }}
+        <div class="comment-bubble">
+          <div class="comment-text">{{ comment.content|linebreaks }}</div>
 
           {% if comment.image %}
           <div class="comment-media">
@@ -96,6 +104,11 @@
             </video>
           </div>
           {% endif %}
+          <div class="comment-actions-row">
+            <button class="stat-btn comment-reply" title="Reply"><i class='bx bx-reply'></i></button>
+            <button class="stat-btn comment-like" data-liked="false" title="Like"><i class='bx bx-heart'></i> <span class="stat-count">0</span></button>
+            <button class="stat-btn comment-share" title="Share"><i class='bx bx-share'></i></button>
+          </div>
         </div>
       </div>
     </div>
@@ -136,9 +149,9 @@
 </div>
 
 <!-- Edit Modal -->
-<div id="editModal" class="modal">
+  <div id="editModal" class="modal">
   <div class="modal-content">
-    <span class="close" onclick="closeEditModal()">&times;</span>
+    <span class="close" onclick="closeEditModal()"><i class="bx bx-x" aria-hidden="true"></i></span>
     <form method="post" action="{% url 'post_edit' post.id %}" enctype="multipart/form-data">
       {% csrf_token %}
       <textarea name="content" id="editContent" required></textarea>
@@ -158,6 +171,22 @@
   </div>
 </div>
 
+<!-- Report Modal -->
+  <div id="reportModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeReportModal()"><i class="bx bx-x" aria-hidden="true"></i></span>
+    <h3 style="margin-top:0;">Report Post</h3>
+    <form onsubmit="submitReport(event)">
+      <label for="reportReason">What's wrong with this post?</label>
+      <textarea id="reportReason" name="reason" rows="4" style="width:100%; margin-top:8px; background:#000; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;" required></textarea>
+      <div style="text-align:right; margin-top:12px;">
+        <button type="button" onclick="closeReportModal()" style="margin-right:8px;">Cancel</button>
+        <button type="submit" style="background:#ff6b6b; color:#fff; border:none; padding:8px 12px; border-radius:6px;">Submit Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <style>
   .timeline-post {
     display: flex;
@@ -169,6 +198,27 @@
   .post-header {
     display: flex;
     justify-content: space-between;
+  }
+
+  .card {
+    background: linear-gradient(180deg,#000,#050505);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .post-left { float: left; margin-right: 12px; }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size:18px;
   }
 
   .username {
@@ -187,6 +237,7 @@
   .post-media video {
     max-width: 100%;
     border-radius: 16px;
+    margin-top: 8px;
   }
 
   .comments-section {
@@ -196,10 +247,10 @@
   .comment {
     display: flex;
     gap: 12px;
-    padding: 16px 0;
+    padding: 12px 0;
     border-bottom: 1px solid #2f3336;
   }
-
+  .comment-left { width:44px; }
   .comment-avatar {
     width: 44px;
     height: 44px;
@@ -211,6 +262,63 @@
     justify-content: center;
     font-weight: 700;
   }
+
+  .comment-right { flex: 1; }
+
+  .comment-meta { font-size: 13px; color: #d7dadd; margin-bottom: 6px; }
+
+  .comment-bubble {
+    background: #0f1112; /* slightly contrasted bubble */
+    border: 1px solid #1f2224;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #e7e9ea;
+  }
+
+  /* post menu */
+  .post-actions { position: relative; }
+  .post-menu {
+    position: absolute;
+    right: 0;
+    top: 40px; /* spacing between button and menu */
+    background: #0b0b0c;
+    border: 1px solid #232527;
+    border-radius: 8px;
+    padding: 6px 6px;
+    display: none;
+    z-index: 20;
+    min-width: 160px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    transform-origin: top right;
+    transform: translateY(-6px);
+    opacity: 0;
+    transition: transform .12s ease, opacity .12s ease;
+  }
+  .post-menu.show { display: block; transform: translateY(0); opacity: 1; }
+
+  .comment:hover .comment-bubble { box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+  .comment { align-items: flex-start; }
+  .comment + .comment { margin-top: 6px; }
+  .comments-section { padding: 10px 16px; }
+  .no-comments { color: #9aa0a6; }
+  .post-menu .menu-item {
+    display: block;
+    background: transparent;
+    color: #e6e9ea;
+    border: none;
+    padding: 8px 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .post-menu .menu-item:hover { background: rgba(255,255,255,0.03); }
+  .post-menu .menu-item.report-btn { color: #ff6b6b; font-weight: 700; }
+
+  /* per-comment action row */
+  .comment-actions-row { display:flex; gap:12px; margin-top:8px; }
+  .comment-actions-row .stat-btn { color:#9aa0a6; background:transparent; border:none; display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
+  .comment-actions-row .comment-like.liked { color: #ff4d6d; transform:scale(1.05); }
 
   
 
@@ -329,6 +437,12 @@
     max-width: 320px;
   }
 
+  /* post stats */
+  .post-stats { display:flex; gap:12px; margin-top:10px; }
+  .stat-btn { background: transparent; border: none; color: #9aa0a6; cursor: pointer; display:inline-flex; gap:8px; align-items:center; }
+  .stat-btn .stat-count { font-weight:700; margin-left:4px; color:#c7cdd0 }
+  .like-btn.liked { color: #ff4d6d; transform: scale(1.05); }
+
   /* Thumbnail inside the media button */
   .media-thumb {
     display: none;
@@ -388,6 +502,25 @@
     justify-content: center;
     cursor: pointer;
   }
+
+  /* New Twitter-like banner + avatar styles */
+  .post-top { position: relative; margin-bottom: 18px; }
+  .post-banner { width: 100%; height: 160px; border-radius: 12px; background: linear-gradient(90deg,#1d9bf0,#7856ff); box-shadow: 0 8px 28px rgba(0,0,0,0.5); }
+  .post-author { display:flex; align-items:center; gap:12px; position: relative; margin-top: -56px; padding-left: 12px; }
+  .avatar-large { width:112px; height:112px; border-radius:50%; background:linear-gradient(135deg,#1d9bf0,#7856ff); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:36px; border:4px solid var(--background-color); box-shadow:0 8px 20px rgba(0,0,0,0.5); }
+  .author-meta { color:#e7e9ea; }
+  .author-meta .display-name { font-weight:800; font-size:20px; }
+  .author-meta .handle { color:#b9bfc3; margin-top:4px; font-size:13px; }
+  .post-title .username { font-weight:700; }
+
+  /* Make the card sit nicely under the banner */
+  .timeline-post.card { margin-top: 8px; border-radius:12px; overflow:visible; }
+
+  @media (max-width:640px) {
+    .post-banner { height:110px; }
+    .avatar-large { width:84px; height:84px; font-size:28px; margin-left:8px; }
+    .post-author { margin-top: -42px; }
+  }
 </style>
 
 <script>
@@ -408,6 +541,7 @@
 
   window.onclick = function (e) {
     if (e.target.id === 'editModal') closeEditModal();
+    if (e.target.id === 'reportModal') closeReportModal();
   }
 
   // Comment media preview handlers
@@ -472,7 +606,7 @@
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'remove-preview';
-      removeBtn.innerText = '×';
+      removeBtn.innerHTML = '<i class="bx bx-x" aria-hidden="true"></i>';
       removeBtn.title = 'Remove';
       removeBtn.addEventListener('click', () => clearPreview(type));
       wrapper.appendChild(removeBtn);
@@ -499,7 +633,7 @@
         // If this is the image input, also show a tiny thumbnail inside the button
         try {
           const label = inp.closest('label.media-btn');
-          if (type === 'image' && label) {
+            if (type === 'image' && label) {
             const url = URL.createObjectURL(file);
             let thumb = label.querySelector('.media-thumb');
             if (!thumb) {
@@ -535,7 +669,7 @@
               const removeBtn = document.createElement('button');
               removeBtn.type = 'button';
               removeBtn.className = 'remove-preview';
-              removeBtn.innerText = '×';
+              removeBtn.innerHTML = '<i class="bx bx-x" aria-hidden="true"></i>';
               removeBtn.title = 'Remove';
               removeBtn.addEventListener('click', () => clearPreview('image'));
               wrapper.appendChild(removeBtn);
@@ -548,6 +682,52 @@
       });
     });
   })();
+
+  // Like button toggle (client-side)
+  (function(){
+    const likeBtn = document.querySelector('.like-btn');
+    if (!likeBtn) return;
+    likeBtn.addEventListener('click', function(){
+      const liked = likeBtn.classList.toggle('liked');
+      const countEl = likeBtn.querySelector('.stat-count');
+      let count = parseInt(countEl ? countEl.innerText : '0', 10) || 0;
+      count = liked ? count + 1 : Math.max(0, count - 1);
+      if (countEl) countEl.innerText = count;
+      // optimistic UI only — server update not implemented here
+    });
+  })();
+
+  // per-comment like toggles (delegation)
+  (function(){
+    document.addEventListener('click', function(e){
+      const likeBtn = e.target.closest('.comment-like');
+      if (!likeBtn) return;
+      const liked = likeBtn.classList.toggle('liked');
+      const countEl = likeBtn.querySelector('.stat-count');
+      let count = parseInt(countEl ? countEl.innerText : '0', 10) || 0;
+      count = liked ? count + 1 : Math.max(0, count - 1);
+      if (countEl) countEl.innerText = count;
+    });
+  })();
+
+  // Report modal handlers
+  function openReportModal() {
+    const m = document.getElementById('reportModal');
+    if (m) m.style.display = 'block';
+  }
+  function closeReportModal() {
+    const m = document.getElementById('reportModal');
+    if (m) m.style.display = 'none';
+  }
+
+  function submitReport(e) {
+    // basic client-side confirm; real endpoint should handle the report.
+    e.preventDefault();
+    const reason = document.getElementById('reportReason').value.trim();
+    if (!reason) { alert('Please describe the problem before reporting.'); return; }
+    alert('Report submitted — thank you.');
+    closeReportModal();
+  }
 </script>
 
 {% endblock %}

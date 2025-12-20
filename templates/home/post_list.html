@@ -60,7 +60,7 @@
       <!-- Timeline -->
       {% for post in posts %}
       <div class="timeline-post" onclick="window.location.href='{% url 'post_detail' post.id %}'">
-        <div class="avatar"></div>
+        <div class="avatar">{{ post.author.display_name|first|upper }}</div>
         <div class="post-content">
           <div class="post-header">
             <span class="username">{{ post.author.display_name }}</span>

@@ -21,4 +21,5 @@ urlpatterns = [
     path('order/<int:order_id>/cancel/', views.order_cancel, name='order_cancel'),
     path('order/<int:order_id>/complete/', views.order_complete, name='order_complete'),
     path('comments/create/<int:post_id>/', views.comment_create, name='comment_create'),
+    path('profile/<int:user_id>/', views.get_profile, name='get_profile'),
 ]

@@ -251,3 +251,8 @@ def comment_create(request, post_id):
         return redirect('post_detail', post_id=post.id)
 
     return redirect('post_detail', post_id=post.id)
+
+def get_profile(request, user_id):
+    user = get_object_or_404(Account, id=user_id)
+    posts = Post.objects.filter(author=user).order_by('-created_at')
+    return render(request, 'profile/profile_detail.html', {'user': user, 'posts': posts})
