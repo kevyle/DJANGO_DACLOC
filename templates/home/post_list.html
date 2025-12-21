@@ -59,7 +59,7 @@
 
       <!-- Timeline -->
       {% for post in posts %}
-      <div class="timeline-post" onclick="window.location.href='{% url 'post_detail' post.id %}'">
+      <div class="timeline-post" data-post-id="{{ post.id }}" onclick="window.location.href='{% url 'post_detail' post.id %}'">
         <div class="avatar">{{ post.author.display_name|first|upper }}</div>
         <div class="post-content">
           <div class="post-header">
@@ -87,6 +87,8 @@
             <button class="stat-btn"><i class='bx bx-comment'></i> 0</button>
             <button class="stat-btn"><i class='bx bx-repost'></i> 0</button>
             <button class="stat-btn"><i class='bx bx-heart'></i> 0</button>
+            <button class="stat-btn reaction-btn" onclick="event.stopPropagation(); console.log('[post_list] reaction button clicked'); openReactionModal({{ post.id }}, this)"><i class='bx bx-smile'></i></button>
+            <div class="reaction-display" data-post-id="{{ post.id }}" aria-hidden="true"></div>
             <button class="stat-btn"><i class='bx bx-bar-chart-alt'></i> 0</button>
           </div>
         </div>

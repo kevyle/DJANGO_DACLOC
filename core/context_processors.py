@@ -8,11 +8,11 @@ def current_user(request):
     This keeps your session-based auth available in templates without passing
     the object from every view.
     """
-    user_id = request.session.get('user_id')
+    user_id = request.session.get("user_id")
     if not user_id:
-        return {'current_user': None}
+        return {"current_user": None}
     try:
         user = Account.objects.get(id=user_id)
     except Account.DoesNotExist:
         user = None
-    return {'current_user': user}
+    return {"current_user": user}

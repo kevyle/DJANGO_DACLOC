@@ -18,14 +18,14 @@
 
     {% if orders %}
         {% for order in orders %}
-        <a href="{% url 'order_detail' order.id %}" 
-           style="display:block;text-decoration:none;color:inherit;">
+        <a href="{% url 'order_detail' order.id %}"
+            style="display:block;text-decoration:none;color:inherit;">
         <div style="
             padding:16px;
             border-bottom:1px solid #2f3336;
             cursor:pointer;
             transition:background 0.2s;">
-            
+
             <div style="font-size:15px; color:#71767b;">
                 Order #{{ order.id }}
             </div>

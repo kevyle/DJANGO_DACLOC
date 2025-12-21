@@ -26,6 +26,8 @@
   </div>
 
   <div class="timeline-post card">
+    <!-- identify the post for reaction updates -->
+    <div class="post-wrapper" data-post-id="{{ post.id }}">
     <div class="post-content">
       <div class="post-header">
         <div class="post-title">
@@ -68,8 +70,11 @@
       <div class="post-stats">
         <button class="stat-btn comment-btn"><i class='bx bx-comment'></i> <span class="stat-count">{{ comments.count }}</span></button>
         <button class="stat-btn like-btn" data-liked="false"><i class='bx bx-heart'></i> <span class="stat-count">{{ post.like_count|default:0 }}</span></button>
+        <button class="stat-btn reaction-btn" data-post-id="{{ post.id }}" onclick="openReactionModal({{ post.id }}, this)"><i class='bx bx-smile'></i></button>
         <button class="stat-btn"><i class='bx bx-share'></i></button>
+        <div class="reaction-display" data-post-id="{{ post.id }}" aria-hidden="true"></div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -320,7 +325,7 @@
   .comment-actions-row .stat-btn { color:#9aa0a6; background:transparent; border:none; display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
   .comment-actions-row .comment-like.liked { color: #ff4d6d; transform:scale(1.05); }
 
-  
+
 
   .comment-header {
     font-size: 14px;
@@ -521,12 +526,31 @@
     .avatar-large { width:84px; height:84px; font-size:28px; margin-left:8px; }
     .post-author { margin-top: -42px; }
   }
+
+/* Reaction modal styles */
+.reaction-modal { display: none; position: fixed; inset: 0; z-index: 2000; }
+.reaction-modal-backdrop { position:absolute; inset:0; background: rgba(0,0,0,0.45); }
+.reaction-modal-panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(0.96); background: #000; border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); opacity: 0; transition: transform .16s ease, opacity .16s ease; }
+.reaction-modal-panel.show { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+.reaction-grid { display:grid; grid-template-columns: repeat(6, 48px); gap:8px; }
+.reaction-item { width:48px; height:48px; border-radius:10px; border:none; background: linear-gradient(180deg,#0b0b0c,#0f1112); color: #fff; font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: transform .12s ease; }
+.reaction-item:active { transform: scale(0.92); }
+.reaction-fly { position:fixed; font-size:20px; pointer-events:none; transition: transform .9s cubic-bezier(.2,.8,.2,1), opacity .9s ease; transform-origin:center; z-index:3000; }
+.reaction-fly.fly { transform: translateY(-64px) scale(1.6); opacity: 0.95; }
+.reaction-fly.pop { transform: translateY(-120px) scale(0.32); opacity: 0; }
+.reaction-display { display:inline-flex; align-items:center; gap:6px; margin-left:8px; }
+.reaction-chip { background: rgba(255,255,255,0.04); padding:6px 8px; border-radius:999px; display:inline-flex; gap:6px; align-items:center; font-weight:700; }
+.reaction-chip .reaction-count { color:#c7cdd0; font-weight:700; margin-left:4px; }
+.reaction-display.pulse { animation: pulseScale .6s ease; }
+@keyframes pulseScale { 0%{ transform:scale(.98); } 50%{ transform:scale(1.06);} 100%{ transform:scale(1); } }
 </style>
 
 <script>
+  console.log('[post_detail] script loaded');
   const menu = document.getElementById('postMenu');
 
   function toggleMenu() {
+    if (!menu) { console.warn('[post_detail] toggleMenu: postMenu element not found'); return; }
     menu.classList.toggle('show');
   }
 
@@ -728,6 +752,31 @@
     alert('Report submitted — thank you.');
     closeReportModal();
   }
+
+  // Use global reaction modal from base.html when available.
+  // This avoids duplicate modal creation and JS conflicts between templates.
+  function openReactionModal(postId, btn) {
+    if (window && typeof window.openReactionModal === 'function') {
+      return window.openReactionModal(postId, btn);
+    }
+    console.warn('[post_detail] openReactionModal: global handler not found', { postId });
+  }
+
+  function closeReactionModal() {
+    if (window && typeof window.closeReactionModal === 'function') return window.closeReactionModal();
+    console.warn('[post_detail] closeReactionModal: global handler not found');
+  }
+
+  function applyReactionToPost(postId, reaction) {
+    if (window && typeof window.applyReactionToPost === 'function') return window.applyReactionToPost(postId, reaction);
+    console.warn('[post_detail] applyReactionToPost: global handler not found', { postId, reaction });
+  }
+
+  function animateReactionFly(btn, postId, reaction) {
+    if (window && typeof window.animateReactionFly === 'function') return window.animateReactionFly(btn, postId, reaction);
+    console.warn('[post_detail] animateReactionFly: global handler not found', { postId, reaction });
+  }
+
 </script>
 
 {% endblock %}
