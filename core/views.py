@@ -21,7 +21,7 @@ def user_create(request):
             email=email,
             password=password,
         )
-        request.session["user_id"] = user.id
+        request.session["user_id"] = user.id  # type: ignore
         return redirect("post_list")
 
     return render(request, "signup/user_form.html", {"action": "create"})
@@ -38,7 +38,7 @@ def user_login(request):
         password = request.POST.get("password")
         try:
             user = Account.objects.get(username=username, password=password)
-            request.session["user_id"] = user.id
+            request.session["user_id"] = user.id  # type: ignore
             return redirect("post_list")
         except Account.DoesNotExist:
             return render(
@@ -101,7 +101,7 @@ def post_list(request):
             image=image,
             video=video,
         )
-        return redirect("post_list")  # Redirect để reload trang
+        return redirect("post_list")  # Redirect để reload
 
     posts = Post.objects.select_related("author").order_by("-created_at")
     return render(request, "home/post_list.html", {"posts": posts, "user": user})
@@ -109,7 +109,7 @@ def post_list(request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.filter(is_active=True).order_by("-created_at")
+    comments = post.comments.filter(is_active=True).order_by("-created_at")  # type: ignore
 
     user = get_current_user(request)
 
@@ -197,7 +197,7 @@ def order_create(request, item_id):
             item = get_object_or_404(Item, id=item_id)
             OrderItem.objects.create(order=order, item=item, quantity=int(quantity))
 
-        return redirect("order_detail", order_id=order.id)
+        return redirect("order_detail", order_id=order.id)  # type: ignore
 
     items = Item.objects.all()
     return render(request, "orders/order_form.html", {"items": items})
@@ -226,7 +226,7 @@ def order_cancel(request, order_id):
         return redirect("user_login")
 
     order = get_object_or_404(Order, id=order_id, user=user)
-    order.status = "canceled"
+    order.status = "canceled"  # type: ignore
     order.save()
     return redirect("order_list")
 
@@ -237,7 +237,7 @@ def order_complete(request, order_id):
         return redirect("user_login")
 
     order = get_object_or_404(Order, id=order_id, user=user)
-    order.status = "completed"
+    order.status = "completed"  # type: ignore
     order.save()
     return redirect("order_list")
 
@@ -264,9 +264,9 @@ def comment_create(request, post_id):
                 is_active=True,
             )
 
-        return redirect("post_detail", post_id=post.id)
+        return redirect("post_detail", post_id=post.id)  # type: ignore
 
-    return redirect("post_detail", post_id=post.id)
+    return redirect("post_detail", post_id=post.id)  # type: ignore
 
 
 def get_profile(request, user_id):
@@ -339,14 +339,14 @@ def react_to_post(request, post_id):
 
             # Return aggregated counts per reaction type for the post
             counts = list(
-                post.reactions.values("reaction_type").annotate(count=Count("id"))
+                post.reactions.values("reaction_type").annotate(count=Count("id"))  # type: ignore
             )
 
             logger.info(
                 "Reaction saved",
                 extra={
                     "post_id": post_id,
-                    "user_id": user.id,
+                    "user_id": user.id,  # type: ignore
                     "reaction": reaction,
                     "created": created,
                 },
@@ -378,4 +378,4 @@ def add_reaction(request, post_id, reaction_type):
 
     Reaction.objects.create(post=post, user=user, reaction_type=reaction_type)
 
-    return redirect("post_detail", post_id=post.id)
+    return redirect("post_detail", post_id=post.id)  # type: ignore

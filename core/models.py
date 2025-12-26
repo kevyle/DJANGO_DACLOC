@@ -45,7 +45,7 @@ class Order(models.Model):
     is_canceled = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Order {self.id} by {self.user.username}"
+        return f"Order {self.id} by {self.user.username}" # type: ignore
 
 
 class OrderItem(models.Model):
@@ -54,7 +54,7 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return f"{self.quantity} x {self.item.name} in Order {self.order.id}"
+        return f"{self.quantity} x {self.item.name} in Order {self.order.id}" # type: ignore
 
 
 class Comment(models.Model):
@@ -75,7 +75,7 @@ class Comment(models.Model):
 
     def __str__(self):
         return (
-            f"Comment by {self.author.username} on Post {self.post.id}" or "No Content"
+            f"Comment by {self.author.username} on Post {self.post.id}" or "No Content" # type: ignore
         )
 
 
@@ -99,4 +99,4 @@ class Reaction(models.Model):
         unique_together = ("post", "user")
 
     def __str__(self):
-        return f"{self.reaction_type} by {self.user.username} on Post {self.post.id}"
+        return f"{self.reaction_type} by {self.user.username} on Post {self.post.id}" # type: ignore
