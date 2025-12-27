@@ -25,6 +25,24 @@ class Post(models.Model):
     def __str__(self):
         return f"Post by {self.author.username} at {self.created_at}"
 
+    @property
+    def reaction_summary(self):
+        """
+        Returns a dict of reaction emoji and counts, plus user's own reaction
+        """
+        from django.db.models import Count
+
+        reactions = self.reactions.values("reaction_type").annotate(count=Count("id"))  # type: ignore
+        return {r["reaction_type"]: r["count"] for r in reactions}
+
+    def user_reaction(self, user):
+        if not user.is_authenticated:
+            return None
+        try:
+            return self.reactions.get(user=user).reaction_type  # type: ignore
+        except Reaction.DoesNotExist:
+            return None
+
 
 class Item(models.Model):
     name = models.CharField(max_length=255)
@@ -80,23 +98,15 @@ class Comment(models.Model):
 
 
 class Reaction(models.Model):
-    REACTION_CHOICES = [
-        ("like", "Like"),
-        ("love", "Love"),
-        ("haha", "Haha"),
-        ("wow", "Wow"),
-        ("sad", "Sad"),
-        ("angry", "Angry"),
-    ]
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="reactions")
+    post = models.ForeignKey("Post", on_delete=models.CASCADE, related_name="reactions")
     user = models.ForeignKey(
-        Account, on_delete=models.CASCADE, related_name="reactions"
+        "Account", on_delete=models.CASCADE, related_name="reactions"
     )
-    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+    reaction_type = models.CharField(max_length=10)  # e.g., 👍, ❤️
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("post", "user")
+        unique_together = ("post", "user")  # One reaction per user per post
 
     def __str__(self):
-        return f"{self.reaction_type} by {self.user.username} on Post {self.post.id}"  # type: ignore
+        return f"{self.reaction_type} by {self.user.username} on Post {self.post.id}"

@@ -1,167 +1,150 @@
-{% extends "base.html" %}
-{% load static %}
-
-{% block content %}
+{% extends "base.html" %} {% load static %} {% block content %}
 
 <div class="container">
+    <!-- Main -->
+    <div class="main">
+        <div class="header">Home</div>
 
-  <!-- Main -->
-  <div class="main">
+        <!-- Post Form -->
+        <div class="post-form-container">
+            <form method="post" action="{% url 'post_list' %}" enctype="multipart/form-data" id="postForm">
+                {% csrf_token %}
+                <div class="post-form">
+                    <div class="avatar"></div>
 
-    <div class="header">Home</div>
+                    <div class="post-input-area">
+                        <textarea name="content" class="post-textarea" placeholder="What’s happening?" id="contentInput" required></textarea>
 
-    <!-- Post Form -->
-    <div class="post-form-container">
-      <form method="post" action="{% url 'post_list' %}" enctype="multipart/form-data" id="postForm">
-        {% csrf_token %}
-        <div class="post-form">
-          <div class="avatar"></div>
+                        <!-- Image Preview -->
+                        <div class="media-preview" id="imagePreview">
+                            <img id="previewImg" alt="Preview" />
+                            <button type="button" class="remove-media" onclick="removeImage()">✕</button>
+                        </div>
 
-          <div class="post-input-area">
-            <textarea
-              name="content"
-              class="post-textarea"
-              placeholder="What’s happening?"
-              id="contentInput"
-              required
-            ></textarea>
+                        <!-- Video Preview -->
+                        <div class="media-preview" id="videoPreview">
+                            <video id="previewVideo" controls></video>
+                            <button type="button" class="remove-media" onclick="removeVideo()">✕</button>
+                        </div>
 
-            <!-- Image Preview -->
-            <div class="media-preview" id="imagePreview">
-              <img id="previewImg" alt="Preview">
-              <button type="button" class="remove-media" onclick="removeImage()">✕</button>
+                        <div class="post-actions">
+                            <div class="media-buttons">
+                                <label class="media-btn" title="Add Image">
+                                    <i class="bx bx-image"></i>
+                                    <input type="file" name="image" accept="image/*" id="imageInput" onchange="previewImage(event)" />
+                                </label>
+
+                                <label class="media-btn" title="Add Video">
+                                    <i class="bx bx-video"></i>
+                                    <input type="file" name="video" accept="video/*" id="videoInput" onchange="previewVideo(event)" />
+                                </label>
+
+                                <button type="button" class="media-btn">
+                                    <i class="bx bx-face"></i>
+                                </button>
+                                <button type="button" class="media-btn">
+                                    <i class="bx bx-poll"></i>
+                                </button>
+                            </div>
+
+                            <button type="submit" class="submit-btn" id="submitBtn">Post</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Timeline -->
+        {% for post in posts %}
+        <div class="timeline-post" data-post-id="{{ post.id }}" onclick="window.location.href='{% url 'post_detail' post.id %}'">
+            <div class="avatar">{{ post.author.display_name|first|upper }}</div>
+
+            <div class="post-content">
+                <div class="post-header">
+                    <span class="username">{{ post.author.display_name }}</span>
+                    <span class="handle"> @{{ post.author.username }} · {{ post.created_at|timesince }} ago </span>
+                </div>
+
+                <div class="post-text">{{ post.content }}</div>
+
+                {% if post.image %}
+                <div class="post-media">
+                    <img src="{{ post.image.url }}" alt="Post image" />
+                </div>
+                {% endif %} {% if post.video %}
+                <div class="post-media">
+                    <video controls>
+                        <source src="{{ post.video.url }}" type="video/mp4" />
+                    </video>
+                </div>
+                {% endif %}
+
+                <div class="post-stats">
+                    <button class="stat-btn"><i class="bx bx-comment"></i> 0</button>
+                    <button class="stat-btn"><i class="bx bx-repost"></i> 0</button>
+                    <button class="stat-btn reaction-btn" onclick="window.location.href='{% url 'post_detail' post.id %}'">
+                        <i class="bx bx-smile">
+                            <span class="stat-count" id="reactionCount-{{ post.id }}"> {{ post.total_reactions|default:0 }} </span>
+                        </i>
+                    </button>
+                    <button class="stat-btn"><i class="bx bx-bar-chart-alt"></i> 0</button>
+                </div>
             </div>
-
-            <!-- Video Preview -->
-            <div class="media-preview" id="videoPreview">
-              <video id="previewVideo" controls></video>
-              <button type="button" class="remove-media" onclick="removeVideo()">✕</button>
-            </div>
-
-            <div class="post-actions">
-              <div class="media-buttons">
-                <label class="media-btn" title="Add Image">
-                  <i class='bx bx-image'></i>
-                  <input type="file" name="image" accept="image/*" id="imageInput" onchange="previewImage(event)">
-                </label>
-
-                <label class="media-btn" title="Add Video">
-                  <i class='bx bx-video'></i>
-                  <input type="file" name="video" accept="video/*" id="videoInput" onchange="previewVideo(event)">
-                </label>
-
-                <button type="button" class="media-btn"><i class='bx bx-face'></i></button>
-                <button type="button" class="media-btn"><i class='bx bx-poll'></i></button>
-              </div>
-
-              <button type="submit" class="submit-btn" id="submitBtn">Post</button>
-            </div>
-          </div>
         </div>
-      </form>
+        {% empty %}
+        <div class="empty-timeline">
+            <p>No posts yet. Be the first to share something!</p>
+        </div>
+        {% endfor %}
     </div>
-
-    <!-- Timeline -->
-    {% for post in posts %}
-    <div
-      class="timeline-post"
-      data-post-id="{{ post.id }}"
-      onclick="window.location.href='{% url 'post_detail' post.id %}'"
-    >
-      <div class="avatar">{{ post.author.display_name|first|upper }}</div>
-
-      <div class="post-content">
-        <div class="post-header">
-          <span class="username">{{ post.author.display_name }}</span>
-          <span class="handle">
-            @{{ post.author.username }} · {{ post.created_at|timesince }} ago
-          </span>
-        </div>
-
-        <div class="post-text">{{ post.content }}</div>
-
-        {% if post.image %}
-        <div class="post-media">
-          <img src="{{ post.image.url }}" alt="Post image">
-        </div>
-        {% endif %}
-
-        {% if post.video %}
-        <div class="post-media">
-          <video controls>
-            <source src="{{ post.video.url }}" type="video/mp4">
-          </video>
-        </div>
-        {% endif %}
-
-        <div class="post-stats">
-          <button class="stat-btn"><i class='bx bx-comment'></i> 0</button>
-          <button class="stat-btn"><i class='bx bx-repost'></i> 0</button>
-          <button
-            class="stat-btn reaction-btn"
-            onclick="window.location.href='{% url 'post_detail' post.id %}'"
-          >
-            <i class='bx bx-smile'> 0</i>
-          </button>
-          <button class="stat-btn"><i class='bx bx-bar-chart-alt'></i> 0</button>
-        </div>
-      </div>
-    </div>
-    {% empty %}
-    <div class="empty-timeline">
-      <p>No posts yet. Be the first to share something!</p>
-    </div>
-    {% endfor %}
-
-  </div>
 </div>
 
 <script>
-  function previewImage(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    function previewImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = e => {
-      previewImg.src = e.target.result;
-      imagePreview.classList.add("active");
-      removeVideo();
-    };
-    reader.readAsDataURL(file);
-  }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImg.src = e.target.result;
+            imagePreview.classList.add("active");
+            removeVideo();
+        };
+        reader.readAsDataURL(file);
+    }
 
-  function previewVideo(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    function previewVideo(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = e => {
-      previewVideo.src = e.target.result;
-      videoPreview.classList.add("active");
-      removeImage();
-    };
-    reader.readAsDataURL(file);
-  }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewVideo.src = e.target.result;
+            videoPreview.classList.add("active");
+            removeImage();
+        };
+        reader.readAsDataURL(file);
+    }
 
-  function removeImage() {
-    imagePreview.classList.remove("active");
-    imageInput.value = "";
-    previewImg.src = "";
-  }
+    function removeImage() {
+        imagePreview.classList.remove("active");
+        imageInput.value = "";
+        previewImg.src = "";
+    }
 
-  function removeVideo() {
-    videoPreview.classList.remove("active");
-    videoInput.value = "";
-    previewVideo.src = "";
-  }
+    function removeVideo() {
+        videoPreview.classList.remove("active");
+        videoInput.value = "";
+        previewVideo.src = "";
+    }
 
-  const contentInput = document.getElementById("contentInput");
-  const submitBtn = document.getElementById("submitBtn");
+    const contentInput = document.getElementById("contentInput");
+    const submitBtn = document.getElementById("submitBtn");
 
-  contentInput.addEventListener("input", () => {
-    submitBtn.disabled = contentInput.value.trim() === "";
-  });
-  submitBtn.disabled = true;
+    contentInput.addEventListener("input", () => {
+        submitBtn.disabled = contentInput.value.trim() === "";
+    });
+    submitBtn.disabled = true;
 </script>
 
 {% endblock %}

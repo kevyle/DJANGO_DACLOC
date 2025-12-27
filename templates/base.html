@@ -718,7 +718,6 @@
 
       window.openReactionModal = function(postId, btn){
         console.log('[base] openReactionModal called with', { postId, btnPresent: !!btn });
-        alert(`[DEBUG] openReactionModal called with postId=${postId}`);
         const m = ensureModal();
         console.log('[base] ensureModal returned', !!m);
         m.style.display = 'block';

@@ -304,54 +304,39 @@ def get_profile(request, user_id):
     )
 
 
-@csrf_exempt
+@csrf_protect
 def react_to_post(request, post_id):
-    from django.http import JsonResponse
-    import json
+    if request.method != "POST":
+        return JsonResponse({"success": False})
 
     user = get_current_user(request)
     if not user:
-        return JsonResponse({"error": "Not logged in"}, status=401)
+        return JsonResponse({"success": False, "error": "Not logged in"})
 
     post = get_object_or_404(Post, id=post_id)
 
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid method"}, status=405)
+    data = json.loads(request.body)
+    emoji = data.get("reaction")
+    if not emoji:
+        return JsonResponse({"success": False})
 
-    try:
-        data = json.loads(request.body)
-        reaction = data.get("reaction")
+    # Delete existing reaction of same type (toggle)
+    existing = Reaction.objects.filter(post=post, user=user, reaction_type=emoji)
+    if existing.exists():
+        existing.delete()
+    else:
+        # Remove any other reaction
+        Reaction.objects.filter(post=post, user=user).delete()
+        Reaction.objects.create(post=post, user=user, reaction_type=emoji)
 
-        EMOJI_MAP = {
-            "👍": "like",
-            "❤️": "love",
-            "😂": "haha",
-            "😮": "wow",
-            "😢": "sad",
-            "😡": "angry",
-        }
+    # Return updated counts
+    counts = (
+        Reaction.objects.filter(post=post)
+        .values("reaction_type")
+        .annotate(count=Count("id"))
+    )
 
-        reaction_key = EMOJI_MAP.get(reaction)
-        if not reaction_key:
-            return JsonResponse({"error": "Invalid reaction"}, status=400)
-
-        Reaction.objects.update_or_create(
-            post=post,
-            user=user,
-            defaults={"reaction_type": reaction_key},
-        )
-
-        counts = post.reactions.values("reaction_type").annotate(count=Count("id"))  # type: ignore
-
-        return JsonResponse(
-            {
-                "success": True,
-                "counts": list(counts),
-            }
-        )
-
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Bad JSON"}, status=400)
+    return JsonResponse({"success": True, "counts": list(counts)})
 
 
 def add_reaction(request, post_id, reaction_type):
@@ -364,3 +349,8 @@ def add_reaction(request, post_id, reaction_type):
     Reaction.objects.create(post=post, user=user, reaction_type=reaction_type)
 
     return redirect("post_detail", post_id=post.id)  # type: ignore
+
+
+@property
+def total_reactions(self):
+    return self.reactions.count()

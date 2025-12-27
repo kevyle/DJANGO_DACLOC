@@ -1,480 +1,722 @@
-{% extends "base.html" %}
-{% load static %}
-{% block content %}
+{% extends "base.html" %} {% load static %} {% block content %}
 
 <div class="main">
+    <!-- REACTION MODAL -->
+    <div class="reaction-modal" onclick="closeReactionModal()">
+        <div class="reaction-modal-backdrop"></div>
 
-  <!-- Header -->
-  <div class="header" style="display:flex;align-items:center;gap:10px;">
-    <a href="{% url 'post_list' %}" style="color:white;text-decoration:none;">
-      <i class="bx bx-arrow-back" style="font-size:24px;"></i>
-    </a>
-    <span>Post</span>
-  </div>
-
-  <!-- Post -->
-  <div class="timeline-post card">
-    <div class="post-wrapper" data-post-id="{{ post.id }}">
-
-      <div class="post-header">
-        <div>
-          <strong>{{ post.author.display_name|default:post.author.username }}</strong>
-          <span class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
+        <div class="reaction-modal-panel" onclick="event.stopPropagation()">
+            <div class="reaction-grid">
+                <button class="reaction-item" onclick="sendReaction('👍')">👍</button>
+                <button class="reaction-item" onclick="sendReaction('❤️')">❤️</button>
+                <button class="reaction-item" onclick="sendReaction('😂')">😂</button>
+                <button class="reaction-item" onclick="sendReaction('😮')">😮</button>
+                <button class="reaction-item" onclick="sendReaction('😢')">😢</button>
+                <button class="reaction-item" onclick="sendReaction('😡')">😡</button>
+            </div>
         </div>
-      </div>
-
-      <div class="post-text">{{ post.content }}</div>
-
-      {% if post.image %}
-      <div class="post-media">
-        <img src="{{ post.image.url }}">
-      </div>
-      {% endif %}
-
-      {% if post.video %}
-      <div class="post-media">
-        <video controls>
-          <source src="{{ post.video.url }}">
-        </video>
-      </div>
-      {% endif %}
-
-      <!-- REACTION BUTTONS -->
-      <div class="post-stats">
-        <button class="stat-btn" onclick="react('👍')">👍</button>
-        <button class="stat-btn" onclick="react('❤️')">❤️</button>
-        <button class="stat-btn" onclick="react('😂')">😂</button>
-        <button class="stat-btn" onclick="react('😮')">😮</button>
-        <button class="stat-btn" onclick="react('😢')">😢</button>
-        <button class="stat-btn" onclick="react('😡')">😡</button>
-
-        <div id="reactionDisplay" class="reaction-display">
-          {% for r in reaction_counts %}
-            <span class="reaction-chip">
-              {{ r.reaction_type }} <span class="reaction-count">{{ r.count }}</span>
-            </span>
-          {% endfor %}
-        </div>
-      </div>
-
     </div>
-  </div>
 
-  <!-- COMMENTS -->
-  <div class="comments-section">
-    <h3 class="comments-title">Replies</h3>
-
-    {% for comment in comments %}
-    <div class="comment">
-      <div class="comment-left">
-        <div class="comment-avatar">{{ comment.author.username|first|upper }}</div>
-      </div>
-      <div class="comment-right">
-        <div class="comment-meta">
-          {{ comment.author.username }} · {{ comment.created_at|timesince }} ago
-        </div>
-        <div class="comment-bubble">
-          {{ comment.content }}
-        </div>
-      </div>
+    <!-- Header -->
+    <div class="header" style="display: flex; align-items: center; gap: 10px">
+        <a href="{% url 'post_list' %}" style="color: white; text-decoration: none">
+            <i class="bx bx-arrow-back" style="font-size: 24px"></i>
+        </a>
+        <span>Post</span>
     </div>
-    {% empty %}
-    <p class="no-comments">No replies yet.</p>
-    {% endfor %}
-  </div>
 
-  <!-- REPLY -->
-  <form method="post" action="{% url 'comment_create' post.id %}">
-    {% csrf_token %}
-    <textarea name="content" class="comment-input" placeholder="Post your reply"></textarea>
-    <button type="submit">Reply</button>
-  </form>
+    <!-- Post -->
+    <div class="timeline-post card">
+        <div class="post-wrapper" data-post-id="{{ post.id }}">
+            <div class="post-header">
+                <div>
+                    <strong>{{ post.author.display_name|default:post.author.username }}</strong>
+                    <span class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
+                </div>
+            </div>
 
+            <div class="post-text">{{ post.content }}</div>
+
+            {% if post.image %}
+            <div class="post-media">
+                <img src="{{ post.image.url }}" />
+            </div>
+            {% endif %} {% if post.video %}
+            <div class="post-media">
+                <video controls>
+                    <source src="{{ post.video.url }}" />
+                </video>
+            </div>
+            {% endif %}
+
+            <!-- REACTION BUTTONS -->
+            <div class="post-stats">
+                <button class="stat-btn">
+                    <i class="bx bx-comment"></i>
+                    <span class="stat-count">0</span>
+                </button>
+
+                <button class="stat-btn">
+                    <i class="bx bx-repost"></i>
+                    <span class="stat-count">0</span>
+                </button>
+
+                <!-- REACTION BUTTON -->
+                <button class="stat-btn reaction-btn" onclick="event.stopPropagation(); openReactionModal({{ post.id }})">
+                    <i class="bx bx-smile"></i>
+                    <span class="stat-count" id="reactionCount-{{ post.id }}"> {{ post.total_reactions|default:0 }} </span>
+                </button>
+
+                <button class="stat-btn">
+                    <i class="bx bx-bar-chart-alt"></i>
+                    <span class="stat-count">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="comments-section">
+        <h3 class="comments-title">Replies</h3>
+
+        {% for comment in comments %}
+        <div class="comment">
+            <div class="comment-left">
+                <div class="comment-avatar">{{ comment.author.username|first|upper }}</div>
+            </div>
+            <div class="comment-right">
+                <div class="comment-meta"><strong>{{ comment.author.username }}</strong> · {{ comment.created_at|timesince }} ago</div>
+                <div class="comment-bubble">{{ comment.content }}</div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="no-comments">No replies yet.</p>
+        {% endfor %}
+    </div>
+
+    <!-- REPLY -->
+    <form method="post" enctype="multipart/form-data" action="{% url 'comment_create' post.id %}">
+        {% csrf_token %}
+        <textarea name="content" class="comment-input" placeholder="Post your reply"></textarea>
+        <button type="submit">Reply</button>
+    </form>
 </div>
 
 <style>
-  .timeline-post {
-    display: flex;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid #2f3336;
-  }
+    .timeline-post {
+        display: flex;
+        gap: 12px;
+        padding: 16px;
+        border-bottom: 1px solid #2f3336;
+    }
 
-  .post-header {
-    display: flex;
-    justify-content: space-between;
-  }
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+    }
 
-  .card {
-    background: linear-gradient(180deg,#000,#050505);
-    border-radius: 12px;
-    padding: 12px;
-  }
+    .card {
+        background: linear-gradient(180deg, #000, #050505);
+        border-radius: 12px;
+        padding: 12px;
+    }
 
-  .post-left { float: left; margin-right: 12px; }
+    .post-left {
+        float: left;
+        margin-right: 12px;
+    }
 
-  .avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #0f1112; /* dark gray tone */
-    color: #fff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:700;
-    font-size:18px;
-  }
+    .avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #0f1112; /* dark gray tone */
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+    }
 
-  .username {
-    font-weight: 700;
-  }
+    .username {
+        font-weight: 700;
+    }
 
-  .handle {
-    color: #71767b;
-  }
+    .handle {
+        color: #71767b;
+    }
 
-  .post-text {
-    margin: 10px 0;
-  }
+    .post-text {
+        margin: 10px 0;
+    }
 
-  .post-media img,
-  .post-media video {
-    max-width: 100%;
-    border-radius: 16px;
-    margin-top: 8px;
-  }
+    .post-media img,
+    .post-media video {
+        max-width: 100%;
+        border-radius: 16px;
+        margin-top: 8px;
+    }
 
-  .comments-section {
-    padding: 16px;
-  }
+    .comments-section {
+        padding: 16px;
+    }
 
-  .comment {
-    display: flex;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid #2f3336;
-  }
-  .comment-left { width:44px; }
-  .comment-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #1d9bf0;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-  }
+    .comment {
+        display: flex;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #2f3336;
+    }
+    .comment-left {
+        width: 44px;
+    }
+    .comment-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #1d9bf0;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+    }
 
-  .comment-right { flex: 1; }
+    .comment-right {
+        flex: 1;
+    }
 
-  .comment-meta { font-size: 13px; color: #d7dadd; margin-bottom: 6px; }
+    .comment-meta {
+        font-size: 13px;
+        color: #d7dadd;
+        margin-bottom: 6px;
+    }
 
-  .comment-bubble {
-    background: #0f1112; /* slightly contrasted bubble */
-    border: 1px solid #1f2224;
-    border-radius: 12px;
-    padding: 10px 12px;
-    color: #e7e9ea;
-  }
+    .comment-bubble {
+        background: #0f1112; /* slightly contrasted bubble */
+        border: 1px solid #1f2224;
+        border-radius: 12px;
+        padding: 10px 12px;
+        color: #e7e9ea;
+    }
 
-  /* post menu */
-  .post-actions { position: relative; }
-  .post-menu {
-    position: absolute;
-    right: 0;
-    top: 40px; /* spacing between button and menu */
-    background: #0b0b0c;
-    border: 1px solid #232527;
-    border-radius: 8px;
-    padding: 6px 6px;
-    display: none;
-    z-index: 20;
-    min-width: 160px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-    transform-origin: top right;
-    transform: translateY(-6px);
-    opacity: 0;
-    transition: transform .12s ease, opacity .12s ease;
-  }
-  .post-menu.show { display: block; transform: translateY(0); opacity: 1; }
+    /* post menu */
+    .post-actions {
+        position: relative;
+    }
+    .post-menu {
+        position: absolute;
+        right: 0;
+        top: 40px; /* spacing between button and menu */
+        background: #0b0b0c;
+        border: 1px solid #232527;
+        border-radius: 8px;
+        padding: 6px 6px;
+        display: none;
+        z-index: 20;
+        min-width: 160px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+        transform-origin: top right;
+        transform: translateY(-6px);
+        opacity: 0;
+        transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+    .post-menu.show {
+        display: block;
+        transform: translateY(0);
+        opacity: 1;
+    }
 
-  .comment:hover .comment-bubble { box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
-  .comment { align-items: flex-start; }
-  .comment + .comment { margin-top: 6px; }
-  .comments-section { padding: 10px 16px; }
-  .no-comments { color: #9aa0a6; }
-  .post-menu .menu-item {
-    display: block;
-    background: transparent;
-    color: #e6e9ea;
-    border: none;
-    padding: 8px 12px;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 6px;
-  }
-  .post-menu .menu-item:hover { background: rgba(255,255,255,0.03); }
-  .post-menu .menu-item.report-btn { color: #ff6b6b; font-weight: 700; }
+    .comment:hover .comment-bubble {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+    .comment {
+        align-items: flex-start;
+    }
+    .comment + .comment {
+        margin-top: 6px;
+    }
+    .comments-section {
+        padding: 10px 16px;
+    }
+    .no-comments {
+        color: #9aa0a6;
+    }
+    .post-menu .menu-item {
+        display: block;
+        background: transparent;
+        color: #e6e9ea;
+        border: none;
+        padding: 8px 12px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        border-radius: 6px;
+    }
+    .post-menu .menu-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    .post-menu .menu-item.report-btn {
+        color: #ff6b6b;
+        font-weight: 700;
+    }
 
-  /* per-comment action row */
-  .comment-actions-row { display:flex; gap:12px; margin-top:8px; }
-  .comment-actions-row .stat-btn { color:#9aa0a6; background:transparent; border:none; display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
-  .comment-actions-row .comment-like.liked { color: #ff4d6d; transform:scale(1.05); }
+    /* per-comment action row */
+    .comment-actions-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+    }
+    .comment-actions-row .stat-btn {
+        color: #9aa0a6;
+        background: transparent;
+        border: none;
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        cursor: pointer;
+    }
+    .comment-actions-row .comment-like.liked {
+        color: #ff4d6d;
+        transform: scale(1.05);
+    }
 
+    .comment-header {
+        font-size: 14px;
+    }
 
+    .comment-handle,
+    .comment-time {
+        color: #71767b;
+    }
 
-  .comment-header {
-    font-size: 14px;
-  }
+    .comment-text {
+        margin-top: 6px;
+    }
 
-  .comment-handle,
-  .comment-time {
-    color: #71767b;
-  }
+    .comment-input-wrapper textarea {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: #e7e9ea;
+        resize: none;
+        min-height: 80px;
+    }
 
-  .comment-text {
-    margin-top: 6px;
-  }
+    .comment-actions {
+        text-align: right;
+    }
 
-  .comment-input-wrapper textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: #e7e9ea;
-    resize: none;
-    min-height: 80px;
-  }
+    .comment-actions button {
+        background: #1d9bf0;
+        color: white;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 9999px;
+        font-weight: 700;
+        margin-top: 8px;
+    }
 
-  .comment-actions {
-    text-align: right;
-  }
+    .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+    }
 
-  .comment-actions button {
-    background: #1d9bf0;
-    color: white;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 9999px;
-    font-weight: 700;
-    margin-top: 8px;
-  }
+    .modal-content {
+        background: #000;
+        width: 500px;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 16px;
+    }
 
-  .modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-  }
+    .comment-input-wrapper {
+        width: 100%;
+        background: transparent;
+        border: #71767b 1px solid;
+        border-radius: 8px;
+        color: #e7e9ea;
+        padding: 8px;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        flex-direction: column;
+    }
 
-  .modal-content {
-    background: #000;
-    width: 500px;
-    margin: 10% auto;
-    padding: 20px;
-    border-radius: 16px;
-  }
+    .comment-input {
+        text-decoration: none;
+        font-size: 16px;
+        margin-left: 0;
+        margin-top: 0;
+    }
 
-  .comment-input-wrapper {
-    width: 100%;
-    background: transparent;
-    border: #71767b 1px solid;
-    border-radius: 8px;
-    color: #e7e9ea;
-    padding: 8px;
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    flex-direction: column;
-  }
+    .comment-input:focus {
+        outline: none;
+    }
 
-  .comment-input {
-    text-decoration: none;
-    font-size: 16px;
-    margin-left: 0;
-    margin-top: 0;
-  }
+    /* Media controls (Twitter-style) */
+    .comment-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 8px;
+    }
 
-  .comment-input:focus {
-    outline: none;
-  }
+    .media-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
 
-  /* Media controls (Twitter-style) */
-  .comment-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-  }
+    .media-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: transparent;
+        border: 1px solid transparent;
+        color: #1d9bf0;
+        cursor: pointer;
+        transition: background 0.12s ease, transform 0.08s ease;
+    }
 
-  .media-controls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
+    .media-btn:hover {
+        background: rgba(29, 155, 240, 0.12);
+        transform: translateY(-1px);
+    }
 
-  .media-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: transparent;
-    border: 1px solid transparent;
-    color: #1d9bf0;
-    cursor: pointer;
-    transition: background .12s ease, transform .08s ease;
-  }
+    .comment-preview {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        max-width: 320px;
+    }
 
-  .media-btn:hover {
-    background: rgba(29,155,240,0.12);
-    transform: translateY(-1px);
-  }
+    /* post stats */
+    .post-stats {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .stat-btn {
+        background: transparent;
+        border: none;
+        color: #9aa0a6;
+        cursor: pointer;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .stat-btn .stat-count {
+        font-weight: 700;
+        margin-left: 4px;
+        color: #c7cdd0;
+    }
+    .like-btn.liked {
+        color: #ff4d6d;
+        transform: scale(1.05);
+    }
 
-  .comment-preview {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    max-width: 320px;
-  }
+    /* Thumbnail inside the media button */
+    .media-thumb {
+        display: none;
+        position: absolute;
+        inset: 4px;
+        border-radius: 8px;
+        background-size: cover;
+        background-position: center center;
+        width: calc(100% - 8px);
+        height: calc(100% - 8px);
+        pointer-events: none;
+    }
 
-  /* post stats */
-  .post-stats { display:flex; gap:12px; margin-top:10px; }
-  .stat-btn { background: transparent; border: none; color: #9aa0a6; cursor: pointer; display:inline-flex; gap:8px; align-items:center; }
-  .stat-btn .stat-count { font-weight:700; margin-left:4px; color:#c7cdd0 }
-  .like-btn.liked { color: #ff4d6d; transform: scale(1.05); }
+    .media-btn {
+        position: relative;
+    }
 
-  /* Thumbnail inside the media button */
-  .media-thumb {
-    display: none;
-    position: absolute;
-    inset: 4px;
-    border-radius: 8px;
-    background-size: cover;
-    background-position: center center;
-    width: calc(100% - 8px);
-    height: calc(100% - 8px);
-    pointer-events: none;
-  }
+    .media-btn .bx {
+        font-size: 18px;
+    }
 
-  .media-btn { position: relative; }
+    .preview-item {
+        position: relative;
+        width: 96px;
+        height: 96px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0f1112;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-  .media-btn .bx { font-size: 18px; }
+    .preview-item img,
+    .preview-item video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 
-  .preview-item {
-    position: relative;
-    width: 96px;
-    height: 96px;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #0f1112;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+    .comment-media img,
+    .comment-media video {
+        max-width: 100%;
+        border-radius: 12px;
+        margin-top: 8px;
+        display: block;
+    }
 
-  .preview-item img,
-  .preview-item video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+    .remove-preview {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
 
-  .comment-media img,
-  .comment-media video {
-    max-width: 100%;
-    border-radius: 12px;
-    margin-top: 8px;
-    display: block;
-  }
+    /* New Twitter-like banner + avatar styles */
+    .post-top {
+        position: relative;
+        margin-bottom: 18px;
+    }
+    .post-banner {
+        width: 100%;
+        height: 160px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #1d9bf0, #7856ff);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+    }
+    .post-author {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
+        margin-top: -56px;
+        padding-left: 12px;
+    }
+    .avatar-large {
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        background: #0f1112;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 36px;
+        border: 4px solid var(--background-color);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    }
+    .author-meta {
+        color: #e7e9ea;
+    }
+    .author-meta .display-name {
+        font-weight: 800;
+        font-size: 20px;
+    }
+    .author-meta .handle {
+        color: #b9bfc3;
+        margin-top: 4px;
+        font-size: 13px;
+    }
+    .post-title .username {
+        font-weight: 700;
+    }
 
-  .remove-preview {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    border: none;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
+    /* Make the card sit nicely under the banner */
+    .timeline-post.card {
+        margin-top: 8px;
+        border-radius: 12px;
+        overflow: visible;
+    }
 
-  /* New Twitter-like banner + avatar styles */
-  .post-top { position: relative; margin-bottom: 18px; }
-  .post-banner { width: 100%; height: 160px; border-radius: 12px; background: linear-gradient(90deg,#1d9bf0,#7856ff); box-shadow: 0 8px 28px rgba(0,0,0,0.5); }
-  .post-author { display:flex; align-items:center; gap:12px; position: relative; margin-top: -56px; padding-left: 12px; }
-  .avatar-large { width:112px; height:112px; border-radius:50%; background:#0f1112; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:36px; border:4px solid var(--background-color); box-shadow:0 8px 20px rgba(0,0,0,0.5); }
-  .author-meta { color:#e7e9ea; }
-  .author-meta .display-name { font-weight:800; font-size:20px; }
-  .author-meta .handle { color:#b9bfc3; margin-top:4px; font-size:13px; }
-  .post-title .username { font-weight:700; }
+    @media (max-width: 640px) {
+        .post-banner {
+            height: 110px;
+        }
+        .avatar-large {
+            width: 84px;
+            height: 84px;
+            font-size: 28px;
+            margin-left: 8px;
+        }
+        .post-author {
+            margin-top: -42px;
+        }
+    }
 
-  /* Make the card sit nicely under the banner */
-  .timeline-post.card { margin-top: 8px; border-radius:12px; overflow:visible; }
-
-  @media (max-width:640px) {
-    .post-banner { height:110px; }
-    .avatar-large { width:84px; height:84px; font-size:28px; margin-left:8px; }
-    .post-author { margin-top: -42px; }
-  }
-
-/* Reaction modal styles */
-.reaction-modal { display: none; position: fixed; inset: 0; z-index: 2000; }
-.reaction-modal-backdrop { position:absolute; inset:0; background: rgba(0,0,0,0.45); }
-.reaction-modal-panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(0.96); background: #000; border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); opacity: 0; transition: transform .16s ease, opacity .16s ease; }
-.reaction-modal-panel.show { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-.reaction-grid { display:grid; grid-template-columns: repeat(6, 48px); gap:8px; }
-.reaction-item { width:48px; height:48px; border-radius:10px; border:none; background: linear-gradient(180deg,#0b0b0c,#0f1112); color: #fff; font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: transform .12s ease; }
-.reaction-item:active { transform: scale(0.92); }
-.reaction-fly { position:fixed; font-size:20px; pointer-events:none; transition: transform .9s cubic-bezier(.2,.8,.2,1), opacity .9s ease; transform-origin:center; z-index:3000; }
-.reaction-fly.fly { transform: translateY(-64px) scale(1.6); opacity: 0.95; }
-.reaction-fly.pop { transform: translateY(-120px) scale(0.32); opacity: 0; }
-.reaction-display { display:inline-flex; align-items:center; gap:6px; margin-left:8px; }
-.reaction-chip { background: rgba(255,255,255,0.04); padding:6px 8px; border-radius:999px; display:inline-flex; gap:6px; align-items:center; font-weight:700; }
-.reaction-chip .reaction-count { color:#c7cdd0; font-weight:700; margin-left:4px; }
-.reaction-display.pulse { animation: pulseScale .6s ease; }
-@keyframes pulseScale { 0%{ transform:scale(.98); } 50%{ transform:scale(1.06);} 100%{ transform:scale(1); } }
+    /* Reaction modal styles */
+    .reaction-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+    }
+    .reaction-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
+    .reaction-modal-panel {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) scale(0.96);
+        background: #000;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+    .reaction-modal-panel.show {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    .reaction-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 48px);
+        gap: 8px;
+    }
+    .reaction-item {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(180deg, #0b0b0c, #0f1112);
+        color: #fff;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.12s ease;
+    }
+    .reaction-item:active {
+        transform: scale(0.92);
+    }
+    .reaction-fly {
+        position: fixed;
+        font-size: 20px;
+        pointer-events: none;
+        transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.9s ease;
+        transform-origin: center;
+        z-index: 3000;
+    }
+    .reaction-fly.fly {
+        transform: translateY(-64px) scale(1.6);
+        opacity: 0.95;
+    }
+    .reaction-fly.pop {
+        transform: translateY(-120px) scale(0.32);
+        opacity: 0;
+    }
+    .reaction-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 8px;
+    }
+    .reaction-chip {
+        background: rgba(255, 255, 255, 0.04);
+        padding: 6px 8px;
+        border-radius: 999px;
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        font-weight: 700;
+    }
+    .reaction-chip .reaction-count {
+        color: #c7cdd0;
+        font-weight: 700;
+        margin-left: 4px;
+    }
+    .reaction-display.pulse {
+        animation: pulseScale 0.6s ease;
+    }
+    @keyframes pulseScale {
+        0% {
+            transform: scale(0.98);
+        }
+        50% {
+            transform: scale(1.06);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
 </style>
 
 <script>
-function react(emoji) {
-  fetch("{% url 'react_to_post' post.id %}", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    body: JSON.stringify({ reaction: emoji })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.success) return;
+    let currentPostId = null;
 
-    const box = document.getElementById("reactionDisplay");
-    box.innerHTML = "";
+    function openReactionModal(postId) {
+        currentPostId = postId;
 
-    data.counts.forEach(r => {
-      box.innerHTML += `
-        <span class="reaction-chip">
-          ${r.reaction_type}
-          <span class="reaction-count">${r.count}</span>
-        </span>
-      `;
-    });
+        const modal = document.querySelector(".reaction-modal");
+        const panel = document.querySelector(".reaction-modal-panel");
 
-    box.classList.add("pulse");
-    setTimeout(() => box.classList.remove("pulse"), 400);
-  });
-}
+        modal.style.display = "block";
+        setTimeout(() => panel.classList.add("show"), 10);
+    }
+
+    function closeReactionModal() {
+        const modal = document.querySelector(".reaction-modal");
+        const panel = document.querySelector(".reaction-modal-panel");
+
+        panel.classList.remove("show");
+        setTimeout(() => {
+            modal.style.display = "none";
+            currentPostId = null;
+        }, 150);
+    }
+
+    /* THIS is what the modal buttons must call */
+    function sendReaction(emoji) {
+        if (!currentPostId) return;
+
+        fetch(`/react/${currentPostId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}",
+            },
+            body: JSON.stringify({ reaction: emoji }),
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                if (!data.success) return;
+
+                // total reactions
+                const total = data.counts.reduce((sum, r) => sum + r.count, 0);
+
+                const countEl = document.getElementById(`reactionCount-${currentPostId}`);
+
+                if (countEl) {
+                    countEl.textContent = total;
+                    countEl.parentElement.classList.add("liked");
+                    setTimeout(() => {
+                        countEl.parentElement.classList.remove("liked");
+                    }, 300);
+                }
+
+                closeReactionModal();
+            })
+            .catch((err) => console.error(err));
+    }
 </script>
 
 {% endblock %}
