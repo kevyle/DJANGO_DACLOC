@@ -1,53 +1,25 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block content %}
+
 <div class="main">
 
   <!-- Header -->
-  <div class="header" style="display: flex; align-items: center; gap: 10px;">
-    <a href="{% url 'post_list' %}" style="color: white; text-decoration: none;">
-      <i class='bx bx-arrow-back' style="font-size: 24px;"></i>
+  <div class="header" style="display:flex;align-items:center;gap:10px;">
+    <a href="{% url 'post_list' %}" style="color:white;text-decoration:none;">
+      <i class="bx bx-arrow-back" style="font-size:24px;"></i>
     </a>
     <span>Post</span>
   </div>
 
   <!-- Post -->
-  <!-- Post top: banner + author -->
-  <div class="post-top">
-    <div class="post-banner"></div>
-    <div class="post-author">
-      <div class="avatar-large">{{ post.author.username|first|upper }}</div>
-      <div class="author-meta">
-        <div class="display-name">{{ post.author.display_name|default:post.author.username|capfirst }}</div>
-        <div class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</div>
-      </div>
-    </div>
-  </div>
-
   <div class="timeline-post card">
-    <!-- identify the post for reaction updates -->
     <div class="post-wrapper" data-post-id="{{ post.id }}">
-    <div class="post-content">
+
       <div class="post-header">
-        <div class="post-title">
-          <span class="username">{{ post.author.display_name|default:post.author.username|capfirst }}</span>
+        <div>
+          <strong>{{ post.author.display_name|default:post.author.username }}</strong>
           <span class="handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
-        </div>
-
-        <div class="post-actions">
-          <button class="stat-btn menu-btn" onclick="toggleMenu()"><i class="bx bx-dots-horizontal-rounded" aria-hidden="true"></i></button>
-
-          <div id="postMenu" class="post-menu">
-            <button class="menu-item report-btn" onclick="openReportModal()">Report</button>
-            {% if user == post.author %}
-            <button class="menu-item" onclick="openEditModal()">Edit</button>
-            <form method="post" action="{% url 'post_delete' post.id %}">
-              {% csrf_token %}
-              <button type="submit" class="menu-item delete-btn">Delete</button>
-            </form>
-            {% endif %}
-          </div>
         </div>
       </div>
 
@@ -55,141 +27,69 @@
 
       {% if post.image %}
       <div class="post-media">
-        <img src="{{ post.image.url }}" alt="Post image">
+        <img src="{{ post.image.url }}">
       </div>
       {% endif %}
 
       {% if post.video %}
       <div class="post-media">
         <video controls>
-          <source src="{{ post.video.url }}" type="video/mp4">
+          <source src="{{ post.video.url }}">
         </video>
       </div>
       {% endif %}
 
+      <!-- REACTION BUTTONS -->
       <div class="post-stats">
-        <button class="stat-btn comment-btn"><i class='bx bx-comment'></i> <span class="stat-count">{{ comments.count }}</span></button>
-        <button class="stat-btn like-btn" data-liked="false"><i class='bx bx-heart'></i> <span class="stat-count">{{ post.like_count|default:0 }}</span></button>
-        <button class="stat-btn reaction-btn" data-post-id="{{ post.id }}" onclick="openReactionModal({{ post.id }}, this)"><i class='bx bx-smile'></i></button>
-        <button class="stat-btn"><i class='bx bx-share'></i></button>
-        <div class="reaction-display" data-post-id="{{ post.id }}" aria-hidden="true"></div>
+        <button class="stat-btn" onclick="react('👍')">👍</button>
+        <button class="stat-btn" onclick="react('❤️')">❤️</button>
+        <button class="stat-btn" onclick="react('😂')">😂</button>
+        <button class="stat-btn" onclick="react('😮')">😮</button>
+        <button class="stat-btn" onclick="react('😢')">😢</button>
+        <button class="stat-btn" onclick="react('😡')">😡</button>
+
+        <div id="reactionDisplay" class="reaction-display">
+          {% for r in reaction_counts %}
+            <span class="reaction-chip">
+              {{ r.reaction_type }} <span class="reaction-count">{{ r.count }}</span>
+            </span>
+          {% endfor %}
+        </div>
       </div>
-    </div>
+
     </div>
   </div>
 
-  <!-- Comments -->
+  <!-- COMMENTS -->
   <div class="comments-section">
     <h3 class="comments-title">Replies</h3>
 
     {% for comment in comments %}
     <div class="comment">
-      <div class="comment-left"><div class="comment-avatar">{{ comment.author.username|first|upper }}</div></div>
+      <div class="comment-left">
+        <div class="comment-avatar">{{ comment.author.username|first|upper }}</div>
+      </div>
       <div class="comment-right">
         <div class="comment-meta">
-          <span class="comment-name">{{ comment.author.display_name }}</span>
-          <span class="comment-handle">@{{ comment.author.username }}</span>
-          <span class="comment-time">· {{ comment.created_at|timesince }} ago</span>
+          {{ comment.author.username }} · {{ comment.created_at|timesince }} ago
         </div>
-
         <div class="comment-bubble">
-          <div class="comment-text">{{ comment.content|linebreaks }}</div>
-
-          {% if comment.image %}
-          <div class="comment-media">
-            <img src="{{ comment.image.url }}" alt="Comment image">
-          </div>
-          {% endif %}
-
-          {% if comment.video %}
-          <div class="comment-media">
-            <video controls>
-              <source src="{{ comment.video.url }}" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          {% endif %}
-          <div class="comment-actions-row">
-            <button class="stat-btn comment-reply" title="Reply"><i class='bx bx-reply'></i></button>
-            <button class="stat-btn comment-like" data-liked="false" title="Like"><i class='bx bx-heart'></i> <span class="stat-count">0</span></button>
-            <button class="stat-btn comment-share" title="Share"><i class='bx bx-share'></i></button>
-          </div>
+          {{ comment.content }}
         </div>
       </div>
     </div>
     {% empty %}
-    <p class="no-comments">No replies yet. Be the first to reply.</p>
+    <p class="no-comments">No replies yet.</p>
     {% endfor %}
-
-    <!-- Reply box -->
-    <div class="comment-box">
-      <form method="post" action="{% url 'comment_create' post.id %}" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <div class="comment-input-wrapper">
-          <div id="commentPreview" class="comment-preview" aria-live="polite"></div>
-          <textarea class="comment-input" name="content" placeholder="Post your reply"></textarea>
-        </div>
-
-        <div class="comment-controls">
-          <div class="media-controls">
-            <label class="media-btn" title="Add image">
-              <i class='bx bx-image'></i>
-              <input class="media-input" type="file" name="image" accept="image/*" hidden>
-              <span class="media-thumb" aria-hidden="true"></span>
-            </label>
-
-            <label class="media-btn" title="Add video">
-              <i class='bx bx-video'></i>
-              <input class="media-input" type="file" name="video" accept="video/*" hidden>
-            </label>
-          </div>
-          <div class="comment-actions">
-            <button type="submit">Reply</button>
-          </div>
-        </div>
-      </form>
-    </div>
   </div>
-</div>
 
-<!-- Edit Modal -->
-  <div id="editModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeEditModal()"><i class="bx bx-x" aria-hidden="true"></i></span>
-    <form method="post" action="{% url 'post_edit' post.id %}" enctype="multipart/form-data">
-      {% csrf_token %}
-      <textarea name="content" id="editContent" required></textarea>
+  <!-- REPLY -->
+  <form method="post" action="{% url 'comment_create' post.id %}">
+    {% csrf_token %}
+    <textarea name="content" class="comment-input" placeholder="Post your reply"></textarea>
+    <button type="submit">Reply</button>
+  </form>
 
-      <div class="post-actions">
-        <label class="media-btn">
-          <i class='bx bx-image'></i>
-          <input type="file" name="image" hidden>
-        </label>
-        <label class="media-btn">
-          <i class='bx bx-video'></i>
-          <input type="file" name="video" hidden>
-        </label>
-        <button type="submit" class="submit-btn">Save</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Report Modal -->
-  <div id="reportModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeReportModal()"><i class="bx bx-x" aria-hidden="true"></i></span>
-    <h3 style="margin-top:0;">Report Post</h3>
-    <form onsubmit="submitReport(event)">
-      <label for="reportReason">What's wrong with this post?</label>
-      <textarea id="reportReason" name="reason" rows="4" style="width:100%; margin-top:8px; background:#000; color:#fff; border:1px solid #444; border-radius:6px; padding:8px;" required></textarea>
-      <div style="text-align:right; margin-top:12px;">
-        <button type="button" onclick="closeReportModal()" style="margin-right:8px;">Cancel</button>
-        <button type="submit" style="background:#ff6b6b; color:#fff; border:none; padding:8px 12px; border-radius:6px;">Submit Report</button>
-      </div>
-    </form>
-  </div>
 </div>
 
 <style>
@@ -546,237 +446,35 @@
 </style>
 
 <script>
-  console.log('[post_detail] script loaded');
-  const menu = document.getElementById('postMenu');
+function react(emoji) {
+  fetch("{% url 'react_to_post' post.id %}", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: JSON.stringify({ reaction: emoji })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) return;
 
-  function toggleMenu() {
-    if (!menu) { console.warn('[post_detail] toggleMenu: postMenu element not found'); return; }
-    menu.classList.toggle('show');
-  }
+    const box = document.getElementById("reactionDisplay");
+    box.innerHTML = "";
 
-  function openEditModal() {
-    document.getElementById('editModal').style.display = 'block';
-    document.getElementById('editContent').value = "{{ post.content|escapejs }}";
-  }
-
-  function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
-  }
-
-  window.onclick = function (e) {
-    if (e.target.id === 'editModal') closeEditModal();
-    if (e.target.id === 'reportModal') closeReportModal();
-  }
-
-  // Comment media preview handlers
-  (function () {
-    const previewContainer = document.getElementById('commentPreview');
-    const mediaInputs = document.querySelectorAll('.media-input');
-    const selected = { image: null, video: null };
-
-    function clearPreview(type) {
-      if (!previewContainer) return;
-      const item = previewContainer.querySelector('[data-type="' + type + '"]');
-      if (item) {
-        const el = item.querySelector('img,video');
-        if (el && el.src) URL.revokeObjectURL(el.src);
-        item.remove();
-      }
-      selected[type] = null;
-      // Also clear the actual input value
-      const inp = document.querySelector('.media-input[name="' + type + '"]');
-      if (inp) inp.value = '';
-      // also clear the thumbnail inside the image button if present
-      if (type === 'image') {
-        const imgInput = document.querySelector('.media-input[name="image"]');
-        if (imgInput) {
-          const label = imgInput.closest('label.media-btn');
-          if (label) {
-            const thumb = label.querySelector('.media-thumb');
-            if (thumb) {
-              if (thumb.dataset.objectUrl) URL.revokeObjectURL(thumb.dataset.objectUrl);
-              thumb.style.backgroundImage = '';
-              thumb.style.display = 'none';
-              delete thumb.dataset.objectUrl;
-            }
-            const icon = label.querySelector('i');
-            if (icon) icon.style.opacity = '';
-          }
-        }
-      }
-    }
-
-    function renderPreview(file, type) {
-      if (!previewContainer) return;
-      clearPreview(type);
-
-      const url = URL.createObjectURL(file);
-      const wrapper = document.createElement('div');
-      wrapper.className = 'preview-item';
-      wrapper.setAttribute('data-type', type);
-
-      if (type === 'image') {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = file.name;
-        wrapper.appendChild(img);
-      } else if (type === 'video') {
-        const vid = document.createElement('video');
-        vid.src = url;
-        vid.controls = false;
-        wrapper.appendChild(vid);
-      }
-
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'remove-preview';
-      removeBtn.innerHTML = '<i class="bx bx-x" aria-hidden="true"></i>';
-      removeBtn.title = 'Remove';
-      removeBtn.addEventListener('click', () => clearPreview(type));
-      wrapper.appendChild(removeBtn);
-
-      previewContainer.appendChild(wrapper);
-      selected[type] = { file, url };
-    }
-
-    mediaInputs.forEach(inp => {
-      inp.addEventListener('change', (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        // determine type from input name
-        const type = inp.name; // 'image' or 'video'
-        // basic validation: limit size to 20MB for videos, 5MB for images (optional)
-        const maxSize = type === 'video' ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
-        if (file.size > maxSize) {
-          alert('File is too large. Choose a smaller file.');
-          inp.value = '';
-          return;
-        }
-        renderPreview(file, type);
-
-        // If this is the image input, also show a tiny thumbnail inside the button
-        try {
-          const label = inp.closest('label.media-btn');
-            if (type === 'image' && label) {
-            const url = URL.createObjectURL(file);
-            let thumb = label.querySelector('.media-thumb');
-            if (!thumb) {
-              thumb = document.createElement('span');
-              thumb.className = 'media-thumb';
-              label.appendChild(thumb);
-            }
-            thumb.style.backgroundImage = `url(${url})`;
-            thumb.style.display = 'block';
-            // hide icon when thumbnail visible
-            const icon = label.querySelector('i');
-            if (icon) icon.style.opacity = '0';
-            // store the object URL so we can revoke later when clearing
-            thumb.dataset.objectUrl = url;
-
-            // Also render a small inline preview inside the input wrapper (so the image appears "in the input box")
-            const previewContainer = document.getElementById('commentPreview');
-            if (previewContainer) {
-              // remove any existing inline image preview
-              const existing = previewContainer.querySelector('[data-type="image-inline"]');
-              if (existing) {
-                const img = existing.querySelector('img');
-                if (img && img.src) URL.revokeObjectURL(img.src);
-                existing.remove();
-              }
-              const wrapper = document.createElement('div');
-              wrapper.className = 'preview-item';
-              wrapper.setAttribute('data-type', 'image-inline');
-              const img = document.createElement('img');
-              img.src = url;
-              img.alt = file.name;
-              wrapper.appendChild(img);
-              const removeBtn = document.createElement('button');
-              removeBtn.type = 'button';
-              removeBtn.className = 'remove-preview';
-              removeBtn.innerHTML = '<i class="bx bx-x" aria-hidden="true"></i>';
-              removeBtn.title = 'Remove';
-              removeBtn.addEventListener('click', () => clearPreview('image'));
-              wrapper.appendChild(removeBtn);
-              previewContainer.appendChild(wrapper);
-            }
-          }
-        } catch (err) {
-          console.warn('Could not set button thumbnail', err);
-        }
-      });
+    data.counts.forEach(r => {
+      box.innerHTML += `
+        <span class="reaction-chip">
+          ${r.reaction_type}
+          <span class="reaction-count">${r.count}</span>
+        </span>
+      `;
     });
-  })();
 
-  // Like button toggle (client-side)
-  (function(){
-    const likeBtn = document.querySelector('.like-btn');
-    if (!likeBtn) return;
-    likeBtn.addEventListener('click', function(){
-      const liked = likeBtn.classList.toggle('liked');
-      const countEl = likeBtn.querySelector('.stat-count');
-      let count = parseInt(countEl ? countEl.innerText : '0', 10) || 0;
-      count = liked ? count + 1 : Math.max(0, count - 1);
-      if (countEl) countEl.innerText = count;
-      // optimistic UI only — server update not implemented here
-    });
-  })();
-
-  // per-comment like toggles (delegation)
-  (function(){
-    document.addEventListener('click', function(e){
-      const likeBtn = e.target.closest('.comment-like');
-      if (!likeBtn) return;
-      const liked = likeBtn.classList.toggle('liked');
-      const countEl = likeBtn.querySelector('.stat-count');
-      let count = parseInt(countEl ? countEl.innerText : '0', 10) || 0;
-      count = liked ? count + 1 : Math.max(0, count - 1);
-      if (countEl) countEl.innerText = count;
-    });
-  })();
-
-  // Report modal handlers
-  function openReportModal() {
-    const m = document.getElementById('reportModal');
-    if (m) m.style.display = 'block';
-  }
-  function closeReportModal() {
-    const m = document.getElementById('reportModal');
-    if (m) m.style.display = 'none';
-  }
-
-  function submitReport(e) {
-    // basic client-side confirm; real endpoint should handle the report.
-    e.preventDefault();
-    const reason = document.getElementById('reportReason').value.trim();
-    if (!reason) { alert('Please describe the problem before reporting.'); return; }
-    alert('Report submitted — thank you.');
-    closeReportModal();
-  }
-
-  // Use global reaction modal from base.html when available.
-  // This avoids duplicate modal creation and JS conflicts between templates.
-  function openReactionModal(postId, btn) {
-    if (window && typeof window.openReactionModal === 'function') {
-      return window.openReactionModal(postId, btn);
-    }
-    console.warn('[post_detail] openReactionModal: global handler not found', { postId });
-  }
-
-  function closeReactionModal() {
-    if (window && typeof window.closeReactionModal === 'function') return window.closeReactionModal();
-    console.warn('[post_detail] closeReactionModal: global handler not found');
-  }
-
-  function applyReactionToPost(postId, reaction) {
-    if (window && typeof window.applyReactionToPost === 'function') return window.applyReactionToPost(postId, reaction);
-    console.warn('[post_detail] applyReactionToPost: global handler not found', { postId, reaction });
-  }
-
-  function animateReactionFly(btn, postId, reaction) {
-    if (window && typeof window.animateReactionFly === 'function') return window.animateReactionFly(btn, postId, reaction);
-    console.warn('[post_detail] animateReactionFly: global handler not found', { postId, reaction });
-  }
-
+    box.classList.add("pulse");
+    setTimeout(() => box.classList.remove("pulse"), 400);
+  });
+}
 </script>
 
 {% endblock %}

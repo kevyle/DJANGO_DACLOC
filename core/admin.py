@@ -39,7 +39,7 @@ class OrderAdmin(admin.ModelAdmin):
             ]
         )
 
-    display_items.short_description = "Items"
+    display_items.short_description = "Items" # type: ignore
 
 
 @admin.register(Item)

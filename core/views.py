@@ -1,9 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_protect
+from django.http import JsonResponse
 from .models import Account, Post, Item, Order, OrderItem, Comment, Reaction
 from django.db.models import Count
 from django.views.decorators.csrf import csrf_exempt
-import logging
+import logging, json
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +47,7 @@ def user_login(request):
             return render(
                 request,
                 "login/login.html",
-                {"error": "Sai tên người dùng hoặc mật khẩu"},
+                {"error": "Invalid username or password."},
             )
     return render(request, "login/login.html")
 
@@ -101,25 +104,49 @@ def post_list(request):
             image=image,
             video=video,
         )
-        return redirect("post_list")  # Redirect để reload
+        return redirect("post_list")
 
     posts = Post.objects.select_related("author").order_by("-created_at")
     return render(request, "home/post_list.html", {"posts": posts, "user": user})
 
 
-def post_detail(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.filter(is_active=True).order_by("-created_at")  # type: ignore
+def post_detail(request, post_id):  # type: ignore
+    # Get post
+    post = get_object_or_404(Post, id=post_id)  # type: ignore
 
-    user = get_current_user(request)
+    # Active comments
+    comments = (
+        post.comments.filter(is_active=True)  # type: ignore
+        .select_related("author")
+        .order_by("-created_at")
+    )
 
-    return render(
-        request,
+    # Current logged-in user (your custom session auth)
+    user = get_current_user(request)  # type: ignore
+
+    # Aggregate reaction counts (SAFE for templates)
+    reaction_counts = post.reactions.values("reaction_type").annotate(  # type: ignore
+        count=Count("id")
+    )
+
+    # Current user's reaction (if any)
+    user_reaction = None
+    if user:
+        user_reaction = (
+            Reaction.objects.filter(post=post, user=user)
+            .values_list("reaction_type", flat=True)
+            .first()
+        )
+
+    return render(  # type: ignore
+        request,  # type: ignore
         "details/post_detail.html",
         {
             "post": post,
             "comments": comments,
             "user": user,
+            "reaction_counts": list(reaction_counts),
+            "user_reaction": user_reaction,
         },
     )
 
@@ -279,94 +306,52 @@ def get_profile(request, user_id):
 
 @csrf_exempt
 def react_to_post(request, post_id):
-    """Handle reaction to a post via AJAX POST."""
-    import json
     from django.http import JsonResponse
+    import json
 
     user = get_current_user(request)
     if not user:
-        return JsonResponse({"error": "Not authenticated"}, status=401)
+        return JsonResponse({"error": "Not logged in"}, status=401)
 
     post = get_object_or_404(Post, id=post_id)
 
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            reaction = data.get("reaction", "")
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
 
-            logger.info(
-                "react_to_post called",
-                extra={
-                    "post_id": post_id,
-                    "user_id": getattr(user, "id", None),
-                    "reaction": reaction,
-                },
-            )
+    try:
+        data = json.loads(request.body)
+        reaction = data.get("reaction")
 
-            if not reaction:
-                logger.warning(
-                    "No reaction provided in request body", extra={"post_id": post_id}
-                )
-                return JsonResponse({"error": "No reaction provided"}, status=400)
-            # Normalize reaction: map emoji or other labels to allowed choice keys
-            EMOJI_MAP = {
-                "❤️": "love",
-                "😂": "haha",
-                "😮": "wow",
-                "😢": "sad",
-                "😡": "angry",
-                "👍": "like",
-                "👎": "angry",
-                "🔥": "like",
-                "🎉": "love",
-                "😍": "love",
-                "👏": "love",
-                "💯": "love",
+        EMOJI_MAP = {
+            "👍": "like",
+            "❤️": "love",
+            "😂": "haha",
+            "😮": "wow",
+            "😢": "sad",
+            "😡": "angry",
+        }
+
+        reaction_key = EMOJI_MAP.get(reaction)
+        if not reaction_key:
+            return JsonResponse({"error": "Invalid reaction"}, status=400)
+
+        Reaction.objects.update_or_create(
+            post=post,
+            user=user,
+            defaults={"reaction_type": reaction_key},
+        )
+
+        counts = post.reactions.values("reaction_type").annotate(count=Count("id"))  # type: ignore
+
+        return JsonResponse(
+            {
+                "success": True,
+                "counts": list(counts),
             }
+        )
 
-            reaction_key = EMOJI_MAP.get(reaction, reaction)
-
-            try:
-                # Create or update reaction (upsert)
-                obj, created = Reaction.objects.update_or_create(
-                    post=post, user=user, defaults={"reaction_type": reaction_key}
-                )
-            except Exception as e:
-                logger.exception("Failed to save reaction", exc_info=e)
-                return JsonResponse(
-                    {"error": "Failed to save reaction", "details": str(e)}, status=500
-                )
-
-            # Return aggregated counts per reaction type for the post
-            counts = list(
-                post.reactions.values("reaction_type").annotate(count=Count("id"))  # type: ignore
-            )
-
-            logger.info(
-                "Reaction saved",
-                extra={
-                    "post_id": post_id,
-                    "user_id": user.id,  # type: ignore
-                    "reaction": reaction,
-                    "created": created,
-                },
-            )
-
-            return JsonResponse(
-                {
-                    "success": True,
-                    "created": created,
-                    "reaction": reaction,
-                    "counts": counts,
-                }
-            )
-        except json.JSONDecodeError:
-            logger.warning(
-                "Invalid JSON received in react_to_post", extra={"post_id": post_id}
-            )
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Bad JSON"}, status=400)
 
 
 def add_reaction(request, post_id, reaction_type):
